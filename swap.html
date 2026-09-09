@@ -163,18 +163,20 @@ if (!o) {
     const added = AddedItems.get(o.id);
     preview.replaceChildren();
     if (!added.length) {
-      preview.append(el("tr", {}, el("td", { colspan: "10", class: "muted", style: "padding:14px;text-align:center" },
+      preview.append(el("tr", {}, el("td", { colspan: "11", class: "muted", style: "padding:14px;text-align:center" },
         "No items added in this session.")));
       return;
     }
-    for (const a of added) {
+    added.forEach((a, idx) => {
       preview.append(el("tr", { class: "rx-row" },
         el("td", {}, a.eye), el("td", {}, a.item), el("td", { class: "num" }, a.qty),
         el("td", { class: "num" }, a.power), el("td", { class: "num" }, a.bc),
         el("td", { class: "num" }, a.dia), el("td", { class: "num" }, a.cyl),
         el("td", { class: "num" }, a.axis), el("td", { class: "num" }, a.add || "—"),
-        el("td", {}, a.color || "—")));
-    }
+        el("td", {}, a.color || "—"),
+        el("td", {}, el("button", { class: "btn sm warn", type: "button",
+          onclick: () => removeItemAt(idx) }, "Remove"))));
+    });
   }
   paintPreview();
 
@@ -182,6 +184,28 @@ if (!o) {
      never blank when the document already says what is needed. */
   const firstOutstanding = outstandingRx()[0];
   if (firstOutstanding) fillFrom(firstOutstanding);
+
+  /* Takes back a single line added in this session. */
+  function removeItemAt(idx) {
+    const gone = AddedItems.removeAt(o.id, idx);
+    paintPreview();
+    paintRxSource();
+    refreshChecklist();
+    toast(gone ? `Removed the ${gone.eye} line.` : "Nothing to remove.");
+  }
+
+  /* Takes back every line added in this session. Lines that were already
+     on the order before this session are untouched. */
+  function removeAllAdded() {
+    const n = AddedItems.clear(o.id);
+    if (!n) { toast("No items have been added in this session."); return; }
+    paintPreview();
+    paintRxSource();
+    refreshChecklist();
+    const next = outstandingRx()[0];
+    if (next) fillFrom(next);
+    toast(`Removed ${n} added line${n === 1 ? "" : "s"}.`);
+  }
 
   /* Adds every prescribed line the order is still missing, in one go. */
   function addAllFromDocument() {
@@ -294,7 +318,7 @@ if (!o) {
           el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
           el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
           el("th", { class: "num" }, "Axis"), el("th", { class: "num" }, "Add"),
-          el("th", {}, "Color"))),
+          el("th", {}, "Color"), el("th", {}, ""))),
         preview))));
 
   /* ---------- bottom action bar ----------
@@ -302,7 +326,8 @@ if (!o) {
      it: add every prescribed line, then step once more to leave. */
   content.append(el("div", { class: "bottombar" },
     el("span", { class: "label" }, "Finish up"),
-    docWindowBtn(o, "Document Window"),
+    el("button", { class: "btn warn", type: "button", onclick: removeAllAdded },
+      "Remove All Added Items"),
     el("button", { class: "btn primary", type: "button", onclick: addAllFromDocument },
       "Add All Items From Document"),
     el("div", { class: "spacer" }),

@@ -37,15 +37,9 @@ if (!o) {
       el("a", { href: "#", onclick: e => { e.preventDefault(); window.print(); } }, "Print")),
     el("div", { class: "body" },
       el("div", { class: "notice" },
-        "This is the prescription as received. Every value is selectable — highlight it, ",
-        "or use the Copy buttons. To keep it beside the order, ",
-        el("b", {}, "open it in its own window"), " and drag that to your second screen."),
-      el("div", { class: "btnrow", style: "margin-top:0" },
-        docWindowBtn(o),
-        el("a", { class: "btn", href: `docview.html${q}`, target: "_blank", rel: "noopener" },
-          "Open In New Tab"),
-        el("span", { class: "muted" },
-          "If your browser blocks the pop-up, use the tab version and drag it across.")))));
+        "This is the prescription as received. Every value is selectable. ",
+        el("b", {}, "Save"), " opens it in its own window, which you can drag to your second screen."),
+      el("div", { class: "btnrow", style: "margin-top:0" }, docWindowBtn(o, "Save")))));
 
   documentSections(o, true).forEach(sec => content.append(sec));
 

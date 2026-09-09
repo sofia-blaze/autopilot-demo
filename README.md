@@ -11,7 +11,7 @@ no network calls and no real data.
 | `index.html` | Agent desktop: state control, queue statistics, and the work list. Click any row (or **Open**) to load an order. |
 | `order.html` | Order detail: summary, validation alerts, Rx line items, and the verification form (three dropdowns + three dates). |
 | `document.html` | The prescription as selectable content, document metadata, and the **Search Options** panel. |
-| `docview.html` | The same document in a bare window, sized to sit on a second screen. Opened via **Open Document In Second Window**. |
+| `docview.html` | The same document in a bare window, sized to sit on a second screen. Opened by **Save** on the document screen. |
 | `swap.html` | Swap the prescriber, fill out and add a new line item, and edit member details. |
 
 ## Flow
@@ -64,7 +64,10 @@ rather than asking you to guess:
   with a **Use This** button that loads it into the item form. The form pre-loads the
   first line the order is still missing, and advances to the next one after each add.
   Lines already on the order are marked *On order*. **Add All Items From Document** in
-  the bottom bar adds every missing line at once.
+  the bottom bar adds every missing line at once, and **Remove All Added Items** takes
+  them all back. Each row in *Items Added This Session* also has its own **Remove**.
+  Removal only affects lines added during this session — lines that came with the order
+  are left alone.
 - The prescriber panel names the prescriber written on the document, so you know who to
   search for.
 
@@ -75,11 +78,10 @@ confirmation number and locks the order read-only. `Reopen Order` unlocks it aga
 
 ## Second screen
 
-The document is ordinary selectable HTML, not a page image. **Open Document In Second
-Window** pops it out into its own bare window to drag onto another monitor; every value
-can be highlighted, and each has a **Copy** button (plus **Copy all lines** for the Rx
-table). If the browser blocks the pop-up, **Open In New Tab** does the same thing in a
-tab. The window stays put while you work the order.
+The document is ordinary selectable HTML, not a page image. **Save**, on the document
+screen, opens it in its own bare window to drag onto another monitor, where it stays put
+while you work the order. That window has no copy controls — values are selectable, so
+click one to select it and copy with the keyboard.
 
 ## Keyboard
 

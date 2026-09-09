@@ -78,6 +78,20 @@ const AddedItems = {
       sessionStorage.setItem(this.key(id), JSON.stringify(list));
       return list;
     } catch { return []; }
+  },
+  removeAt(id, index) {
+    try {
+      const list = this.get(id);
+      if (index < 0 || index >= list.length) return list;
+      const [gone] = list.splice(index, 1);
+      sessionStorage.setItem(this.key(id), JSON.stringify(list));
+      return gone;
+    } catch { return null; }
+  },
+  clear(id) {
+    const n = this.get(id).length;
+    try { sessionStorage.removeItem(this.key(id)); } catch {}
+    return n;
   }
 };
 

@@ -58,8 +58,6 @@ if (!o) {
       el("div", { class: "spacer" }),
       el("a", { href: `document.html${q}` }, "View Document"),
       el("span", {}, " · "),
-      el("a", { href: "#", onclick: e => { e.preventDefault(); openDocWindow(o); } }, "Open In Second Window"),
-      el("span", {}, " · "),
       el("a", { href: "#", onclick: e => { e.preventDefault(); toast("Delete is disabled in the demo."); } }, "Delete Document"))));
 
   /* ---------- validation alerts ---------- */
