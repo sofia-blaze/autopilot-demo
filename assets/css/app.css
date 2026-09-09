@@ -139,12 +139,6 @@ table.kv td.stacked { line-height: 1.55; }
 tr.rx-row td { background: var(--ok-bg); }
 tr.rx-row.flagged td { background: var(--warn-bg); }
 
-/* ---------- alerts ---------- */
-.alerts { margin: 0; padding: 10px 12px; background: var(--err-bg); border-bottom: 1px solid #f2c9c5; }
-.alerts li { color: var(--err); font-size: 12.5px; margin-bottom: 3px; list-style: none; }
-.alerts li:last-child { margin-bottom: 0; }
-.alerts li::before { content: "\2013\00a0"; }
-
 .notice {
   padding: 8px 12px; background: var(--warn-bg); border: 1px solid #eddcb4;
   color: var(--warn); border-radius: 4px; font-size: 12.5px; margin-bottom: 12px;

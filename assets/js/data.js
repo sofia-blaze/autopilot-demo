@@ -69,7 +69,6 @@ const ORDERS = [
     member: { first: "June", last: "Nakamura", dob: "09/30/2001", personId: "204120455", verify: "83816710" },
     prescriber: { name: "Dr. Marcus Feldbrook, OD", clinic: "Cascade Sight Partners", phone: "(555) 018-2204", npi: "1000000055" },
     lastExam: "01/08/2026", expires: "01/08/2028", issueDate: "01/10/2026",
-    alerts: [],
     items: [
       { eye: "OD", item: "NORTHLIGHT AIR 24pk", qty: 1, power: "-3.25", bc: "8.70", dia: "14.2", cyl: "0.00", axis: "0", add: "", color: "", flagged: false },
       { eye: "OS", item: "NORTHLIGHT AIR 24pk", qty: 1, power: "-3.00", bc: "8.70", dia: "14.2", cyl: "0.00", axis: "0", add: "", color: "", flagged: false }
@@ -115,11 +114,6 @@ const ORDERS = [
     member: { first: "Rowan", last: "Alcaraz", dob: "04/17/1990", personId: "204120880", verify: "83816991" },
     prescriber: null,
     lastExam: "", expires: "", issueDate: "",
-    alerts: [
-      "No prescription dates on file. Transcribe them from the document.",
-      "No prescriber assigned. The prescriber is named on the document.",
-      "No Rx line items on this order. The document lists two."
-    ],
     items: [],
     document: {
       prescriberName: "Dr. Corinne Vasquez, OD",

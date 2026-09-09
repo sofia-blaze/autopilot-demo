@@ -60,13 +60,6 @@ if (!o) {
       el("span", {}, " · "),
       el("a", { href: "#", onclick: e => { e.preventDefault(); toast("Delete is disabled in the demo."); } }, "Delete Document"))));
 
-  /* ---------- validation alerts ---------- */
-  if (o.alerts.length && !submitted) {
-    content.append(el("section", { class: "panel" },
-      el("header", {}, "Attention Required"),
-      el("ul", { class: "alerts" }, ...o.alerts.map(a => el("li", {}, a)))));
-  }
-
   function row(label, value) { return el("tr", {}, el("th", {}, label), el("td", {}, value)); }
 
   /* ---------- order summary ---------- */
