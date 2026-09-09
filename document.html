@@ -95,9 +95,7 @@ if (!o) {
     quality: el("select", { id: "docQuality" },
       el("option", { value: "" }, "Select ———"),
       ...["Legible", "Partially legible", "Illegible"].map(v =>
-        el("option", { value: v, selected: v === rv.docQuality ? "selected" : null }, v))),
-    sigPresent: el("input", { type: "checkbox", id: "sigPresent", checked: rv.docSigPresent || null }),
-    nameMatch:  el("input", { type: "checkbox", id: "nameMatch", checked: rv.docNameMatch || null })
+        el("option", { value: v, selected: v === rv.docQuality ? "selected" : null }, v)))
   };
 
   const drStatus = el("div");
@@ -118,14 +116,9 @@ if (!o) {
       toast("An illegible document cannot be accepted. Request a new copy from the prescriber.");
       return;
     }
-    if (!dr.sigPresent.checked || !dr.nameMatch.checked) {
-      toast("Confirm both the signature and the patient name before marking the document reviewed.");
-      return;
-    }
     dr.sigDate.value = fmtDate(dt);
     Review.merge(o.id, {
-      docReviewed: true, docSignatureDate: fmtDate(dt), docQuality: dr.quality.value,
-      docSigPresent: true, docNameMatch: true
+      docReviewed: true, docSignatureDate: fmtDate(dt), docQuality: dr.quality.value
     });
     paintDrStatus();
     refreshChecklist();
@@ -138,11 +131,7 @@ if (!o) {
       drStatus,
       el("div", { class: "formgrid" },
         el("label", { for: "sigDate" }, "Signature Date"), dr.sigDate,
-        el("label", { for: "docQuality" }, "Document Quality"), dr.quality,
-        el("label", {}, "Confirmations"),
-        el("div", { class: "full" },
-          el("label", { class: "check" }, dr.sigPresent, "Prescriber signature present"),
-          el("label", { class: "check" }, dr.nameMatch, "Patient name matches the order"))),
+        el("label", { for: "docQuality" }, "Document Quality"), dr.quality),
       el("div", { class: "btnrow" },
         el("button", { class: "btn primary", type: "button", onclick: markReviewed }, "Mark Document Reviewed"),
         el("a", { class: "btn", href: `swap.html${q}` }, "Next: Swap Tool"),

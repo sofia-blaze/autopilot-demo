@@ -42,7 +42,7 @@ screens. An order cannot be submitted until all five stages are clear:
 | --- | --- | --- |
 | 1 | Enter prescription dates | Order |
 | 2 | Select reason code and order options | Order |
-| 3 | Review the linked document | Document |
+| 3 | Review the linked document (signature date + quality) | Document |
 | 4 | Assign a prescriber | Swap Tool |
 | 5 | Add at least one Rx line item | Swap Tool |
 
@@ -93,9 +93,8 @@ The action bar is sticky at the bottom and is always last in the DOM, so tabbing
 through the whole page reaches the same two buttons in the same order. Focus rings are
 deliberately high-contrast.
 
-Checkboxes toggle on **Enter** as well as Space, so the document review reads
-Tab · Enter · Tab · Enter · Tab · Enter to tick both confirmations and mark the document
-reviewed without leaving the keyboard.
+Checkboxes toggle on **Enter** as well as Space, so the expiration override and the
+prescriber category filters can be ticked without reaching for a second key.
 
 Edits are held in `sessionStorage`, so they survive navigation between pages but are
 cleared when the tab closes. Nothing is sent anywhere.

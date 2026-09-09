@@ -96,23 +96,16 @@ const AddedItems = {
 };
 
 /* ---------- chrome ---------- */
-function fmtClock(totalSec) {
-  const m = String(Math.floor(totalSec / 60)).padStart(2, "0");
-  const s = String(totalSec % 60).padStart(2, "0");
-  return `${m}:${s}`;
-}
-
 function initials(name) {
   return name.replace(/[^A-Za-z. ]/g, "").split(/[. ]+/).filter(Boolean).slice(0, 2)
     .map(w => w[0].toUpperCase()).join("");
 }
 
-/* Renders the top bar, including the agent state control and its timer. */
+/* Renders the top bar, including the agent state control. */
 function renderAppBar(mount) {
   const bar = el("div", { class: "appbar" },
-    el("div", { class: "brand" }, "Autopilot", el("span", { class: "tag" }, "Demo")),
+    el("div", { class: "brand" }, "Demo"),
     el("div", { class: "spacer" }),
-    el("span", { class: "timer", id: "stateTimer" }, "00:00"),
     (() => {
       const sel = el("select", { class: "state-select", id: "agentState", "aria-label": "Agent state" },
         el("option", {}, "Ready"),
@@ -127,14 +120,11 @@ function renderAppBar(mount) {
   mount.prepend(bar);
 
   const sel = $("#agentState", bar);
-  const timer = $("#stateTimer", bar);
-  let secs = 0;
   const paint = () => {
     sel.className = "state-select" +
       (sel.value === "Not Ready" ? " notready" : sel.value === "Wrap-Up" ? " wrap" : "");
   };
-  sel.addEventListener("change", () => { secs = 0; timer.textContent = fmtClock(0); paint(); });
-  setInterval(() => { secs += 1; timer.textContent = fmtClock(secs); }, 1000);
+  sel.addEventListener("change", paint);
   paint();
 }
 
