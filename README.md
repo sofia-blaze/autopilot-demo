@@ -93,6 +93,10 @@ The action bar is sticky at the bottom and is always last in the DOM, so tabbing
 through the whole page reaches the same two buttons in the same order. Focus rings are
 deliberately high-contrast.
 
+Checkboxes toggle on **Enter** as well as Space, so the document review reads
+Tab · Enter · Tab · Enter · Tab · Enter to tick both confirmations and mark the document
+reviewed without leaving the keyboard.
+
 Edits are held in `sessionStorage`, so they survive navigation between pages but are
 cleared when the tab closes. Nothing is sent anywhere.
 

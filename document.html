@@ -20,10 +20,17 @@ if (!o) {
   const q = `?order=${encodeURIComponent(o.id)}`;
   const c = o.customer, m = o.member, doc = o.document;
 
+  let checklist = checklistPanel(o, "document");
+  function refreshChecklist() {
+    const next = checklistPanel(o, "document");
+    checklist.replaceWith(next);
+    checklist = next;
+  }
+
   content.append(
     el("h2", { class: "page-title" }, `Document ${o.docId}`),
     tabs(o.id, "Documents"),
-    checklistPanel(o, "document"));
+    checklist);
 
   /* ---------- the scanned document ---------- */
   const page = el("div", { class: "page", id: "docPage" },
@@ -121,6 +128,7 @@ if (!o) {
       docSigPresent: true, docNameMatch: true
     });
     paintDrStatus();
+    refreshChecklist();
     toast("Document marked as reviewed.", "ok");
   }
 
@@ -139,7 +147,8 @@ if (!o) {
         el("button", { class: "btn primary", type: "button", onclick: markReviewed }, "Mark Document Reviewed"),
         el("a", { class: "btn", href: `swap.html${q}` }, "Next: Swap Tool"),
         el("button", { class: "btn", type: "button", onclick: () => {
-          Review.merge(o.id, { docReviewed: false }); paintDrStatus(); toast("Document review cleared.");
+          Review.merge(o.id, { docReviewed: false });
+          paintDrStatus(); refreshChecklist(); toast("Document review cleared.");
         } }, "Clear Review")))));
 
   /* ---------- search options ---------- */

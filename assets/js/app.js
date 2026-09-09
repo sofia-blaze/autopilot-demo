@@ -470,3 +470,17 @@ function docWindowBtn(o, label) {
   return el("button", { class: "btn", type: "button", onclick: () => openDocWindow(o) },
     label || "Open Document In Second Window");
 }
+
+/* ---------- Enter toggles checkboxes ----------
+   A checkbox only responds to Space by default. These screens are worked
+   from the keyboard, so Enter toggles the focused checkbox too. Space
+   still works, and Enter keeps its usual meaning everywhere else. */
+document.addEventListener("keydown", ev => {
+  if (ev.key !== "Enter") return;
+  const t = ev.target;
+  if (!(t instanceof HTMLInputElement) || t.type !== "checkbox" || t.disabled) return;
+  ev.preventDefault();
+  t.checked = !t.checked;
+  t.dispatchEvent(new Event("input", { bubbles: true }));
+  t.dispatchEvent(new Event("change", { bubbles: true }));
+});
