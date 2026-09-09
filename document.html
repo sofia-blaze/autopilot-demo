@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot — Document Viewer</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+const orderId = param("order");
+const o = findOrder(orderId);
+const content = layout("Document Viewer", orderId);
+
+if (!o) {
+  notFound(content, "Open an order from the queue to view its documents.");
+} else {
+  const saved = Edits.get(o.id);
+  const q = `?order=${encodeURIComponent(o.id)}`;
+  const c = o.customer, p = o.prescriber, m = o.member;
+
+  content.append(
+    el("h2", { class: "page-title" }, `Document ${o.docId}`),
+    tabs(o.id, "Documents"));
+
+  /* ---------- the rendered "PDF" ---------- */
+  const items = o.items.concat(AddedItems.get(o.id));
+  const page = el("div", { class: "page", id: "docPage" },
+    el("h1", {}, p.clinic),
+    el("div", { class: "doc-sub" }, `${p.name} · NPI ${p.npi} · ${p.phone}`),
+    el("hr", {}),
+    el("div", { class: "watermark" }, "CONTACT LENS PRESCRIPTION"),
+    el("dl", {},
+      el("dt", {}, "Patient"), el("dd", {}, `${m.first} ${m.last}`),
+      el("dt", {}, "Date of Birth"), el("dd", {}, m.dob),
+      el("dt", {}, "Address"), el("dd", {}, `${c.street}, ${c.city}, ${c.state} ${c.zip}`),
+      el("dt", {}, "Exam Date"), el("dd", {}, saved.lastExam || o.lastExam),
+      el("dt", {}, "Issued"), el("dd", {}, saved.issueDate || o.issueDate),
+      el("dt", {}, "Expires"), el("dd", {}, saved.expires || o.expires)),
+    el("table", {},
+      el("thead", {}, el("tr", {},
+        el("th", {}, "Eye"), el("th", {}, "Material"), el("th", {}, "Power"),
+        el("th", {}, "BC"), el("th", {}, "Dia"), el("th", {}, "Cyl"), el("th", {}, "Axis"), el("th", {}, "Add"))),
+      el("tbody", {}, ...items.map(it => el("tr", {},
+        el("td", {}, it.eye), el("td", {}, it.item), el("td", {}, it.power),
+        el("td", {}, it.bc), el("td", {}, it.dia), el("td", {}, it.cyl),
+        el("td", {}, it.axis), el("td", {}, it.add || "—"))))),
+    el("p", {}, el("b", {}, "Order reference: "), el("span", { class: "mono" }, o.id),
+      el("br", {}), el("b", {}, "Applied rule: "), o.appliedRule),
+    el("div", { class: "sigline" }, p.name),
+    el("p", { style: "margin-top:18px;color:#9aa4b6;font-size:9px" },
+      "Sample document generated for demonstration. Not a medical record. All names, addresses and prescriptions shown are fictional."));
+
+  const thumbs = el("div", { class: "thumbcol" },
+    el("div", { class: "thumb active" }, "PDF"),
+    el("div", { class: "muted", style: "font-size:11px;text-align:center" }, "Page 1 of 1"));
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, `Received ${o.received}`, el("div", { class: "spacer" }),
+       el("a", { href: "#", onclick: e => { e.preventDefault(); window.print(); } }, "Print / Save as PDF")),
+    el("div", { class: "body" },
+      el("div", { class: "docwrap" }, thumbs, page))));
+
+  /* ---------- document metadata ---------- */
+  content.append(el("section", { class: "panel noprint" },
+    el("header", {}, "Document Information"),
+    el("div", { class: "body tight" },
+      el("table", { class: "grid" },
+        el("thead", {}, el("tr", {},
+          el("th", {}, "Document ID"), el("th", {}, "Received"), el("th", {}, "Caller ID"),
+          el("th", {}, "Type"), el("th", {}, "Linked Order"))),
+        el("tbody", {}, el("tr", {},
+          el("td", { class: "mono" }, o.docId),
+          el("td", { class: "mono" }, o.received),
+          el("td", { class: "mono" }, o.callerId === "0"
+            ? el("span", { class: "badge err" }, "invalid") : o.callerId),
+          el("td", {}, saved.faxType || o.faxType),
+          el("td", {}, el("a", { href: `order.html${q}` }, o.id))))))));
+
+  /* ---------- search options ---------- */
+  const byField = el("select", { id: "searchBy" }, ...SEARCH_FIELDS.map(s => el("option", {}, s)));
+  const forTerm = el("input", { type: "text", id: "searchFor", placeholder: "Enter a value" });
+  const results = el("div", { id: "results" });
+
+  function runSearch() {
+    const hits = searchOrders(byField.value, forTerm.value);
+    results.replaceChildren();
+    if (!forTerm.value.trim()) { toast("Enter a value to search for."); return; }
+    if (!hits.length) {
+      results.append(el("div", { class: "notice" },
+        `No orders matched ${byField.value} "${forTerm.value}".`));
+      return;
+    }
+    if (hits.length === 1) { location.href = `order.html?order=${encodeURIComponent(hits[0].id)}`; return; }
+    const tb = el("tbody", {}, ...hits.map(h => el("tr", {
+        class: "clickable",
+        onclick: () => location.href = `order.html?order=${encodeURIComponent(h.id)}`
+      },
+      el("td", { class: "mono" }, h.id), el("td", {}, h.customer.name),
+      el("td", { class: "mono" }, h.customerId), el("td", {}, badge(h.status, h.statusKind)))));
+    results.append(el("table", { class: "grid", style: "margin-top:10px" },
+      el("thead", {}, el("tr", {}, el("th", {}, "Order"), el("th", {}, "Customer"),
+        el("th", {}, "Customer ID"), el("th", {}, "Status"))), tb));
+  }
+
+  forTerm.addEventListener("keydown", e => { if (e.key === "Enter") runSearch(); });
+
+  content.append(el("section", { class: "panel noprint" },
+    el("header", {}, "Search Options"),
+    el("div", { class: "body" },
+      el("div", { class: "formgrid" },
+        el("label", { for: "searchBy" }, "Search by"), byField,
+        el("label", { for: "searchFor" }, "Search for"), forTerm),
+      el("div", { class: "btnrow" },
+        el("button", { class: "btn primary", onclick: runSearch }, "Search"),
+        el("a", { class: "btn", href: `order.html${q}` }, "Back to Order"),
+        el("a", { class: "btn", href: "index.html" }, "Back to Queue")),
+      el("p", { class: "muted", style: "margin:10px 0 0" },
+        "When searching by member name, use the format ", el("b", {}, "last, first"), "."),
+      results)));
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,195 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot — Order Detail</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+const orderId = param("order");
+const o = findOrder(orderId);
+const content = layout("Order Detail", orderId);
+
+if (!o) {
+  notFound(content, "Open an order from the queue to view its detail.");
+} else {
+  const saved = Edits.get(o.id);
+  const q = `?order=${encodeURIComponent(o.id)}`;
+
+  content.append(
+    el("h2", { class: "page-title" }, `Order ${o.id}`, " ", badge(o.status, o.statusKind)),
+    tabs(o.id, "Order"));
+
+  /* ---------- header actions ---------- */
+  const head = el("section", { class: "panel" },
+    el("header", {},
+      `Linked Document: ${o.docId}`,
+      el("div", { class: "spacer" }),
+      el("a", { href: `document.html${q}` }, "View Document"),
+      el("span", {}, " · "),
+      el("a", { href: "#", onclick: e => { e.preventDefault(); toast("Delete is disabled in the demo."); } }, "Delete Document")));
+  content.append(head);
+
+  /* ---------- validation alerts ---------- */
+  if (o.alerts.length) {
+    content.append(el("section", { class: "panel" },
+      el("header", {}, "Attention Required"),
+      el("ul", { class: "alerts" }, ...o.alerts.map(a => el("li", {}, a)))));
+  }
+
+  /* ---------- order summary ---------- */
+  const c = o.customer;
+  const summary = el("table", { class: "kv" },
+    row("Order Number", el("span", { class: "mono" }, o.id)),
+    row("Customer ID", el("span", { class: "mono" }, o.customerId)),
+    row("Order Status", badge(o.status, o.statusKind)),
+    row("Release Time", o.releaseTime || el("span", { class: "muted" }, "—")),
+    row("Customer Phone", c.phone),
+    row("Customer Email", c.email),
+    row("Ship To", el("div", { class: "stacked" },
+      c.name, el("br", {}), c.street, el("br", {}), `${c.city}, ${c.state} ${c.zip}`)),
+    row("Taken Date", o.takenDate),
+    row("Taken By", o.takenBy),
+    row("RMA Order", o.rmaOrder || el("span", { class: "muted" }, "—")),
+    row("Applied Rule", o.appliedRule));
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Order"),
+    el("div", { class: "body tight" }, summary)));
+
+  function row(label, value) {
+    return el("tr", {}, el("th", {}, label), el("td", {}, value));
+  }
+
+  /* ---------- order items ---------- */
+  const itemBody = el("tbody");
+  function paintItems() {
+    itemBody.replaceChildren();
+    itemBody.append(el("tr", {}, el("td", { colspan: "10", class: "rx-member" },
+      `${o.member.first} ${o.member.last} (Person ID: ${o.member.personId})`,
+      el("small", {}, `Verification code: ${o.member.verify} · DOB ${o.member.dob}`))));
+    const all = o.items.concat(AddedItems.get(o.id));
+    for (const it of all) {
+      itemBody.append(el("tr", { class: "rx-row" + (it.flagged ? " flagged" : "") },
+        el("td", {}, it.eye), el("td", {}, it.item), el("td", { class: "num" }, it.qty),
+        el("td", { class: "num" }, it.power), el("td", { class: "num" }, it.bc),
+        el("td", { class: "num" }, it.dia), el("td", { class: "num" }, it.cyl),
+        el("td", { class: "num" }, it.axis), el("td", { class: "num" }, it.add || "—"),
+        el("td", {}, it.color || "—")));
+    }
+  }
+  paintItems();
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Order Items", el("div", { class: "spacer" }),
+       el("a", { href: `swap.html${q}` }, "Add / Swap Item")),
+    el("div", { class: "body tight" },
+      el("table", { class: "grid" },
+        el("thead", {}, el("tr", {},
+          el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
+          el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
+          el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
+          el("th", { class: "num" }, "Axis"), el("th", { class: "num" }, "Add Power"),
+          el("th", {}, "Color"))),
+        itemBody))));
+
+  /* ---------- verification form: dates + the three dropdowns ---------- */
+  const f = {
+    lastExam: el("input", { type: "date", id: "lastExam", value: saved.lastExam ?? o.lastExam }),
+    expires:  el("input", { type: "date", id: "expires",  value: saved.expires  ?? o.expires }),
+    issue:    el("input", { type: "date", id: "issueDate", value: saved.issueDate ?? o.issueDate }),
+    reason:   sel("reasonCode", REASON_CODES, saved.reasonCode, "Select ———"),
+    options:  sel("orderOptions", ORDER_OPTIONS, saved.orderOptions, "Select ———"),
+    faxType:  sel("faxType", FAX_TYPES, saved.faxType ?? o.faxType, null),
+    override: el("input", { type: "checkbox", id: "override", checked: saved.override || null }),
+    keepDoc:  el("input", { type: "checkbox", id: "keepDoc", checked: saved.keepDoc || null }),
+    transfer: el("input", { type: "checkbox", id: "transfer", checked: saved.transfer || null }),
+    notes:    el("textarea", { id: "notes", rows: "3", style: "max-width:100%",
+                               placeholder: "Verification notes (demo only)" })
+  };
+  f.notes.value = saved.notes || "";
+
+  function sel(id, list, current, placeholder) {
+    const s = el("select", { id },
+      placeholder ? el("option", { value: "" }, placeholder) : null,
+      ...list.map(v => el("option", { value: v, selected: v === current ? "selected" : null }, v)));
+    return s;
+  }
+
+  const form = el("div", { class: "formgrid" },
+    el("label", { for: "lastExam" }, "Last Exam Date"), f.lastExam,
+    el("label", { for: "issueDate" }, "Issue Date"), f.issue,
+    el("label", { for: "expires" }, "Expires"), f.expires,
+    el("label", { for: "reasonCode" }, "Reason Code"), f.reason,
+    el("label", { for: "orderOptions" }, "Order Options"), f.options,
+    el("label", { for: "faxType" }, "Document Type"), f.faxType,
+    el("label", { for: "override" }, "Expiration Override"),
+    el("div", {}, el("label", { class: "check" }, f.override, "Medical override applied")),
+    el("label", {}, "Handling"),
+    el("div", {},
+      el("label", { class: "check" }, f.keepDoc, "Keep document"),
+      el("label", { class: "check" }, f.transfer, "Transfer to review team")),
+    el("label", { for: "notes", class: "full", style: "margin-top:4px" }, "Notes"),
+    el("div", { class: "full" }, f.notes));
+
+  function collect() {
+    return {
+      lastExam: f.lastExam.value, expires: f.expires.value, issueDate: f.issue.value,
+      reasonCode: f.reason.value, orderOptions: f.options.value, faxType: f.faxType.value,
+      override: f.override.checked, keepDoc: f.keepDoc.checked, transfer: f.transfer.checked,
+      notes: f.notes.value
+    };
+  }
+
+  function save() {
+    const data = collect();
+    const missing = [];
+    if (!data.reasonCode) missing.push("Reason Code");
+    if (!data.orderOptions) missing.push("Order Options");
+    if (!data.lastExam) missing.push("Last Exam Date");
+    if (missing.length) {
+      toast("Select a value for: " + missing.join(", "));
+      return false;
+    }
+    if (data.expires && data.lastExam && data.expires < data.lastExam) {
+      toast("Expiration date cannot be earlier than the last exam date.");
+      return false;
+    }
+    const expired = data.expires && data.expires < new Date().toISOString().slice(0, 10);
+    if (expired && !data.override) {
+      toast("Prescription is expired — tick Expiration Override to continue.");
+      return false;
+    }
+    Edits.merge(o.id, data);
+    toast("Changes saved for this session.", "ok");
+    return true;
+  }
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Verification"),
+    el("div", { class: "body" }, form,
+      el("div", { class: "btnrow" },
+        el("button", { class: "btn primary", onclick: save }, "Update Files"),
+        el("button", { class: "btn", onclick: () => { if (save()) location.href = `document.html${q}`; } }, "Save & View Document"),
+        el("a", { class: "btn", href: `swap.html${q}` }, "Open Swap Tool"),
+        el("div", { class: "spacer" }),
+        el("button", { class: "btn warn", onclick: () => { Edits.clear(o.id); location.reload(); } }, "Discard Changes"),
+        el("a", { class: "btn", href: "index.html" }, "Back to Queue")))));
+
+  /* ---------- current prescriber ---------- */
+  const p = o.prescriber;
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Prescriber On File", el("div", { class: "spacer" }),
+       el("a", { href: `swap.html${q}` }, "Swap Prescriber")),
+    el("div", { class: "body tight" },
+      el("table", { class: "kv" },
+        row("Name", p.name), row("Clinic", p.clinic),
+        row("Phone", p.phone), row("NPI", el("span", { class: "mono" }, p.npi))))));
+}
+</script>
+</body>
+</html>

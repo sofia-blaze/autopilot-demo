@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot — Order Queue</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+const content = layout("Order Queue");
+
+content.append(el("h2", { class: "page-title" }, "Order Queue"));
+
+/* ---- queue statistics ---- */
+const waiting = ORDERS.filter(o => /Waiting/.test(o.status)).length;
+const longest = Math.max(...ORDERS.map(o => o.ageMin));
+const stats = el("div", { class: "stats" },
+  el("div", { class: "stat" }, el("div", { class: "n" }, ORDERS.length), el("div", { class: "l" }, "In Queue")),
+  el("div", { class: "stat" }, el("div", { class: "n" }, waiting), el("div", { class: "l" }, "Waiting")),
+  el("div", { class: "stat" }, el("div", { class: "n" }, longest + "m"), el("div", { class: "l" }, "Longest Wait")),
+  el("div", { class: "stat" }, el("div", { class: "n" }, "6"), el("div", { class: "l" }, "Agents Ready")),
+  el("div", { class: "stat" }, el("div", { class: "n" }, "94%"), el("div", { class: "l" }, "Service Level")));
+
+const statPanel = el("section", { class: "panel" },
+  el("header", {}, "Queue Statistics", el("div", { class: "spacer" }),
+     el("span", { class: "muted", style: "color:#c9d6ef;font-weight:400" }, "Auto-refresh 30s")),
+  el("div", { class: "body" }, stats));
+content.append(statPanel);
+
+/* ---- filter bar ---- */
+const filterSel = el("select", { id: "statusFilter" },
+  el("option", {}, "All statuses"),
+  ...[...new Set(ORDERS.map(o => o.status))].map(s => el("option", {}, s)));
+const searchInput = el("input", { type: "text", id: "queueSearch", placeholder: "Order #, customer, or document ID" });
+
+const filterPanel = el("section", { class: "panel" },
+  el("header", {}, "Find Work"),
+  el("div", { class: "body" },
+    el("div", { class: "formgrid" },
+      el("label", { for: "statusFilter" }, "Status"), filterSel,
+      el("label", { for: "queueSearch" }, "Search for"), searchInput),
+    el("div", { class: "btnrow" },
+      el("button", { class: "btn primary", onclick: applyFilter }, "Search"),
+      el("button", { class: "btn", onclick: () => { searchInput.value = ""; filterSel.selectedIndex = 0; applyFilter(); } }, "Reset"))));
+content.append(filterPanel);
+
+/* ---- the work list ---- */
+const tbody = el("tbody");
+const table = el("table", { class: "grid" },
+  el("thead", {}, el("tr", {},
+    el("th", {}, "Order Number"), el("th", {}, "Customer"), el("th", {}, "Customer ID"),
+    el("th", {}, "Status"), el("th", {}, "Priority"), el("th", {}, "Document Type"),
+    el("th", {}, "Received"), el("th", { class: "num" }, "Age"), el("th", {}, ""))),
+  tbody);
+
+const listPanel = el("section", { class: "panel" },
+  el("header", {}, "My Work", el("div", { class: "spacer" }),
+     el("span", { id: "count", style: "color:#c9d6ef;font-weight:400" }, "")),
+  el("div", { class: "body tight" }, table));
+content.append(listPanel);
+
+function open(id) { location.href = `order.html?order=${encodeURIComponent(id)}`; }
+
+function applyFilter() {
+  const status = filterSel.value;
+  const term = searchInput.value.trim().toLowerCase();
+  const rows = ORDERS.filter(o => {
+    if (status !== "All statuses" && o.status !== status) return false;
+    if (!term) return true;
+    return [o.id, o.customerId, o.docId, o.customer.name].some(v =>
+      String(v).toLowerCase().includes(term));
+  });
+
+  tbody.replaceChildren();
+  if (!rows.length) {
+    tbody.append(el("tr", {}, el("td", { colspan: "9", class: "muted", style: "padding:18px;text-align:center" },
+      "There is no work to process.")));
+  }
+  for (const o of rows) {
+    tbody.append(el("tr", { class: "clickable", onclick: () => open(o.id) },
+      el("td", { class: "mono" }, o.id),
+      el("td", {}, o.customer.name),
+      el("td", { class: "mono" }, o.customerId),
+      el("td", {}, badge(o.status, o.statusKind)),
+      el("td", {}, o.priority === "High" ? badge("High", "err") : o.priority),
+      el("td", {}, o.faxType),
+      el("td", { class: "mono" }, o.received),
+      el("td", { class: "num" }, o.ageMin + "m"),
+      el("td", {}, el("button", {
+        class: "btn sm primary",
+        onclick: (e) => { e.stopPropagation(); open(o.id); }
+      }, "Open"))));
+  }
+  $("#count").textContent = `${rows.length} of ${ORDERS.length} shown`;
+}
+
+searchInput.addEventListener("keydown", e => { if (e.key === "Enter") applyFilter(); });
+filterSel.addEventListener("change", applyFilter);
+applyFilter();
+</script>
+</body>
+</html>

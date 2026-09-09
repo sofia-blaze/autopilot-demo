@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot — Swap Tool</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body>
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+const orderId = param("order");
+const o = findOrder(orderId);
+const content = layout("Swap Tool", orderId);
+
+if (!o) {
+  notFound(content, "Open an order from the queue to use the swap tool.");
+} else {
+  const q = `?order=${encodeURIComponent(o.id)}`;
+  const saved = Edits.get(o.id);
+
+  content.append(
+    el("h2", { class: "page-title" }, "Swap Tool"),
+    tabs(o.id, "Rx / Swap"),
+    el("section", { class: "panel" },
+      el("header", {}, `Order ${o.id} · ${o.customer.name}`),
+      el("div", { class: "body" },
+        el("span", { class: "muted" }, "Current prescriber: "),
+        el("b", {}, saved.prescriberName || o.prescriber.name),
+        " — ", saved.prescriberClinic || o.prescriber.clinic)));
+
+  /* ---------- swap prescriber ---------- */
+  const kinds = ["Domestic", "Military", "International"];
+  const boxes = kinds.map(k => el("input", { type: "checkbox", value: k, checked: k === "Domestic" ? "checked" : null }));
+  const searchBy = el("select", { id: "ecpBy" },
+    el("option", {}, "Prescriber Name"), el("option", {}, "Clinic"),
+    el("option", {}, "Phone"), el("option", {}, "NPI"));
+  const searchFor = el("input", { type: "text", id: "ecpFor", placeholder: "Leave blank to list all" });
+  const ecpResults = el("div", { id: "ecpResults" });
+
+  function findPrescribers() {
+    const allowed = boxes.filter(b => b.checked).map(b => b.value);
+    const t = searchFor.value.trim().toLowerCase();
+    const key = { "Prescriber Name": "name", "Clinic": "clinic", "Phone": "phone", "NPI": "npi" }[searchBy.value];
+    const hits = PRESCRIBER_DIRECTORY.filter(d =>
+      allowed.includes(d.kind) && (!t || String(d[key]).toLowerCase().includes(t)));
+
+    ecpResults.replaceChildren();
+    if (!allowed.length) { ecpResults.append(el("div", { class: "notice" }, "Select at least one prescriber category.")); return; }
+    if (!hits.length) { ecpResults.append(el("div", { class: "notice" }, "No prescribers matched that search.")); return; }
+
+    ecpResults.append(el("table", { class: "grid", style: "margin-top:10px" },
+      el("thead", {}, el("tr", {}, el("th", {}, "Name"), el("th", {}, "Clinic"),
+        el("th", {}, "Location"), el("th", {}, "Phone"), el("th", {}, "NPI"),
+        el("th", {}, "Category"), el("th", {}, ""))),
+      el("tbody", {}, ...hits.map(d => el("tr", {},
+        el("td", {}, d.name), el("td", {}, d.clinic), el("td", {}, d.city),
+        el("td", { class: "mono" }, d.phone), el("td", { class: "mono" }, d.npi),
+        el("td", {}, badge(d.kind, d.kind === "Domestic" ? "info" : "grey")),
+        el("td", {}, el("button", { class: "btn sm primary", onclick: () => {
+          Edits.merge(o.id, { prescriberName: d.name, prescriberClinic: d.clinic });
+          toast(`Prescriber swapped to ${d.name}.`, "ok");
+          setTimeout(() => location.reload(), 700);
+        } }, "Select")))))));
+  }
+
+  searchFor.addEventListener("keydown", e => { if (e.key === "Enter") findPrescribers(); });
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Swap Prescriber For This Rx"),
+    el("div", { class: "body" },
+      el("div", { style: "margin-bottom:10px" },
+        ...kinds.map((k, i) => el("label", { class: "check" }, boxes[i], k))),
+      el("div", { class: "formgrid" },
+        el("label", { for: "ecpBy" }, "Search by"), searchBy,
+        el("label", { for: "ecpFor" }, "Search for"), searchFor),
+      el("div", { class: "btnrow" },
+        el("button", { class: "btn primary", onclick: findPrescribers }, "Search"),
+        el("button", { class: "btn", onclick: () => {
+          Edits.merge(o.id, { prescriberName: "", prescriberClinic: "" });
+          toast("Reverted to the prescriber on file.", "ok");
+          setTimeout(() => location.reload(), 700);
+        } }, "Revert To Original")),
+      ecpResults)));
+
+  /* ---------- fill out an item ---------- */
+  const it = {
+    eye:   el("select", { id: "iEye" }, el("option", {}, "OD"), el("option", {}, "OS"), el("option", {}, "OU")),
+    item:  el("select", { id: "iItem" }, el("option", { value: "" }, "Select ———"), ...LENS_CATALOG.map(v => el("option", {}, v))),
+    qty:   el("input", { type: "number", id: "iQty", value: "1", min: "1", max: "24" }),
+    power: el("input", { type: "text", id: "iPower", placeholder: "-4.75" }),
+    bc:    el("input", { type: "text", id: "iBc", placeholder: "8.40" }),
+    dia:   el("input", { type: "text", id: "iDia", placeholder: "14.0" }),
+    cyl:   el("input", { type: "text", id: "iCyl", placeholder: "0.00" }),
+    axis:  el("input", { type: "text", id: "iAxis", placeholder: "0" }),
+    add:   el("input", { type: "text", id: "iAdd", placeholder: "+2.00" }),
+    color: el("input", { type: "text", id: "iColor", placeholder: "Optional" })
+  };
+
+  const preview = el("tbody");
+  function paintPreview() {
+    const added = AddedItems.get(o.id);
+    preview.replaceChildren();
+    if (!added.length) {
+      preview.append(el("tr", {}, el("td", { colspan: "10", class: "muted", style: "padding:14px;text-align:center" },
+        "No items added in this session.")));
+      return;
+    }
+    for (const a of added) {
+      preview.append(el("tr", { class: "rx-row" },
+        el("td", {}, a.eye), el("td", {}, a.item), el("td", { class: "num" }, a.qty),
+        el("td", { class: "num" }, a.power), el("td", { class: "num" }, a.bc),
+        el("td", { class: "num" }, a.dia), el("td", { class: "num" }, a.cyl),
+        el("td", { class: "num" }, a.axis), el("td", { class: "num" }, a.add || "—"),
+        el("td", {}, a.color || "—")));
+    }
+  }
+  paintPreview();
+
+  function addItem() {
+    if (!it.item.value) { toast("Choose an item from the catalog."); return; }
+    if (!it.power.value.trim()) { toast("Power is required."); return; }
+    if (!/^[+-]?\d+(\.\d{1,2})?$/.test(it.power.value.trim())) {
+      toast("Power must be a number such as -4.75 or +1.25."); return;
+    }
+    const qty = Number(it.qty.value);
+    if (!Number.isInteger(qty) || qty < 1 || qty > 24) { toast("Quantity must be between 1 and 24."); return; }
+
+    AddedItems.add(o.id, {
+      eye: it.eye.value, item: it.item.value, qty,
+      power: it.power.value.trim(), bc: it.bc.value.trim() || "8.40",
+      dia: it.dia.value.trim() || "14.0", cyl: it.cyl.value.trim() || "0.00",
+      axis: it.axis.value.trim() || "0", add: it.add.value.trim(), color: it.color.value.trim()
+    });
+    it.power.value = it.cyl.value = it.axis.value = it.add.value = it.color.value = "";
+    paintPreview();
+    toast("Item added to the order.", "ok");
+  }
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Fill Out Item"),
+    el("div", { class: "body" },
+      el("div", { class: "formgrid" },
+        el("label", { for: "iEye" }, "Eye"), it.eye,
+        el("label", { for: "iItem" }, "Item"), it.item,
+        el("label", { for: "iQty" }, "Quantity"), it.qty,
+        el("label", { for: "iPower" }, "Power"), it.power,
+        el("label", { for: "iBc" }, "Base Curve"), it.bc,
+        el("label", { for: "iDia" }, "Diameter"), it.dia,
+        el("label", { for: "iCyl" }, "Cylinder"), it.cyl,
+        el("label", { for: "iAxis" }, "Axis"), it.axis,
+        el("label", { for: "iAdd" }, "Add Power"), it.add,
+        el("label", { for: "iColor" }, "Color"), it.color),
+      el("div", { class: "btnrow" },
+        el("button", { class: "btn primary", onclick: addItem }, "Add Item"),
+        el("a", { class: "btn", href: `order.html${q}` }, "Back to Order"),
+        el("a", { class: "btn", href: `document.html${q}` }, "View Document")),
+      el("div", { class: "subhead", style: "margin-top:14px" }, "Items Added This Session"),
+      el("table", { class: "grid" },
+        el("thead", {}, el("tr", {},
+          el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
+          el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
+          el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
+          el("th", { class: "num" }, "Axis"), el("th", { class: "num" }, "Add"),
+          el("th", {}, "Color"))),
+        preview))));
+
+  /* ---------- edit member ---------- */
+  const mf = {
+    first: el("input", { type: "text", id: "mFirst", value: saved.memberFirst ?? o.member.first }),
+    last:  el("input", { type: "text", id: "mLast",  value: saved.memberLast  ?? o.member.last }),
+    dob:   el("input", { type: "date", id: "mDob",   value: saved.memberDob   ?? o.member.dob })
+  };
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Edit Member"),
+    el("div", { class: "body" },
+      el("div", { class: "notice" },
+        "Changing the member name will modify the order and restart verification."),
+      el("div", { class: "formgrid" },
+        el("label", { for: "mFirst" }, "First Name"), mf.first,
+        el("label", { for: "mLast" }, "Last Name"), mf.last,
+        el("label", { for: "mDob" }, "Date of Birth"), mf.dob),
+      el("div", { class: "btnrow" },
+        el("button", { class: "btn primary", onclick: () => {
+          if (!mf.first.value.trim() || !mf.last.value.trim()) { toast("First and last name are required."); return; }
+          Edits.merge(o.id, {
+            memberFirst: mf.first.value.trim(),
+            memberLast: mf.last.value.trim(),
+            memberDob: mf.dob.value
+          });
+          toast("Member updated. Verification would restart.", "ok");
+        } }, "Save Member")))));
+}
+</script>
+</body>
+</html>
