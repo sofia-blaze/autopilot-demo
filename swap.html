@@ -183,6 +183,25 @@ if (!o) {
   const firstOutstanding = outstandingRx()[0];
   if (firstOutstanding) fillFrom(firstOutstanding);
 
+  /* Adds every prescribed line the order is still missing, in one go. */
+  function addAllFromDocument() {
+    const pending = outstandingRx();
+    if (!pending.length) {
+      toast("Every line on the document is already on this order.");
+      return;
+    }
+    for (const rx of pending) {
+      AddedItems.add(o.id, {
+        eye: rx.eye, item: rx.item, qty: rx.qty, power: rx.power, bc: rx.bc,
+        dia: rx.dia, cyl: rx.cyl, axis: rx.axis, add: rx.add || "", color: rx.color || ""
+      });
+    }
+    paintPreview();
+    paintRxSource();
+    refreshChecklist();
+    toast(`Added ${pending.length} line${pending.length === 1 ? "" : "s"} from the document.`, "ok");
+  }
+
   function addItem() {
     if (!it.item.value) { toast("Choose an item from the catalog."); return; }
     if (!it.power.value.trim()) { toast("Power is required."); return; }
@@ -206,47 +225,6 @@ if (!o) {
     if (next) fillFrom(next);
     toast("Item added. Return to the order to finalize.", "ok");
   }
-
-  content.append(el("section", { class: "panel" },
-    el("header", {}, "Fill Out Item"),
-    el("div", { class: "body" },
-      el("div", { class: "notice" },
-        "These values come from the prescription document — you should not invent them. ",
-        "Click ", el("b", {}, "Use This"), " on a line to load it into the form below, then ",
-        el("b", {}, "Add Item"), ". ",
-        el("a", { href: `document.html${q}` }, "View the document")),
-      el("div", { class: "subhead" }, "As Written On The Document"),
-      el("table", { class: "grid", style: "margin-bottom:14px" },
-        el("thead", {}, el("tr", {},
-          el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
-          el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
-          el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
-          el("th", { class: "num" }, "Axis"), el("th", {}, ""))),
-        rxSource),
-      el("div", { class: "formgrid" },
-        el("label", { for: "iEye" }, "Eye"), it.eye,
-        el("label", { for: "iItem" }, "Item"), it.item,
-        el("label", { for: "iQty" }, "Quantity"), it.qty,
-        el("label", { for: "iPower" }, "Power"), it.power,
-        el("label", { for: "iBc" }, "Base Curve"), it.bc,
-        el("label", { for: "iDia" }, "Diameter"), it.dia,
-        el("label", { for: "iCyl" }, "Cylinder"), it.cyl,
-        el("label", { for: "iAxis" }, "Axis"), it.axis,
-        el("label", { for: "iAdd" }, "Add Power"), it.add,
-        el("label", { for: "iColor" }, "Color"), it.color),
-      el("div", { class: "btnrow" },
-        el("button", { class: "btn primary", onclick: addItem }, "Add Item"),
-        el("a", { class: "btn", href: `order.html${q}` }, "Back to Order"),
-        el("a", { class: "btn", href: `document.html${q}` }, "View Document")),
-      el("div", { class: "subhead", style: "margin-top:14px" }, "Items Added This Session"),
-      el("table", { class: "grid" },
-        el("thead", {}, el("tr", {},
-          el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
-          el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
-          el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
-          el("th", { class: "num" }, "Axis"), el("th", { class: "num" }, "Add"),
-          el("th", {}, "Color"))),
-        preview))));
 
   /* ---------- edit member ---------- */
   const mf = {
@@ -279,6 +257,59 @@ if (!o) {
           mf.dob.value = Edits.get(o.id).memberDob;
           toast("Member updated. Verification would restart.", "ok");
         } }, "Save Member")))));
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, "Fill Out Item"),
+    el("div", { class: "body" },
+      el("div", { class: "notice" },
+        "These values come from the prescription document — you should not invent them. ",
+        "Click ", el("b", {}, "Use This"), " on a line to load it into the form below, then ",
+        el("b", {}, "Add Item"), ". ",
+        el("a", { href: `document.html${q}` }, "View the document")),
+      el("div", { class: "subhead" }, "As Written On The Document"),
+      el("table", { class: "grid", style: "margin-bottom:14px" },
+        el("thead", {}, el("tr", {},
+          el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
+          el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
+          el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
+          el("th", { class: "num" }, "Axis"), el("th", {}, ""))),
+        rxSource),
+      el("div", { class: "formgrid" },
+        el("label", { for: "iEye" }, "Eye"), it.eye,
+        el("label", { for: "iItem" }, "Item"), it.item,
+        el("label", { for: "iQty" }, "Quantity"), it.qty,
+        el("label", { for: "iPower" }, "Power"), it.power,
+        el("label", { for: "iBc" }, "Base Curve"), it.bc,
+        el("label", { for: "iDia" }, "Diameter"), it.dia,
+        el("label", { for: "iCyl" }, "Cylinder"), it.cyl,
+        el("label", { for: "iAxis" }, "Axis"), it.axis,
+        el("label", { for: "iAdd" }, "Add Power"), it.add,
+        el("label", { for: "iColor" }, "Color"), it.color),
+      el("div", { class: "btnrow" },
+        el("button", { class: "btn primary", type: "button", onclick: addItem }, "Add Item")),
+      el("div", { class: "subhead", style: "margin-top:14px" }, "Items Added This Session"),
+      el("table", { class: "grid" },
+        el("thead", {}, el("tr", {},
+          el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
+          el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
+          el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
+          el("th", { class: "num" }, "Axis"), el("th", { class: "num" }, "Add"),
+          el("th", {}, "Color"))),
+        preview))));
+
+  /* ---------- bottom action bar ----------
+     Deliberately the last thing in the DOM, so Tab walks straight down to
+     it: add every prescribed line, then step once more to leave. */
+  content.append(el("div", { class: "bottombar" },
+    el("span", { class: "label" }, "Finish up"),
+    docWindowBtn(o, "Document Window"),
+    el("button", { class: "btn primary", type: "button", onclick: addAllFromDocument },
+      "Add All Items From Document"),
+    el("div", { class: "spacer" }),
+    el("a", { class: "btn primary", href: `order.html${q}` }, "Back to Order"),
+    el("span", { class: "hint" },
+      "Keyboard: Tab steps down the page. The last two stops are ",
+      "Add All Items From Document, then Back to Order.")));
 }
 </script>
 </body>

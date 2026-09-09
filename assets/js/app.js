@@ -157,11 +157,12 @@ function stub(ev) {
 
 /* Transient status message pinned under the page title. */
 function toast(msg, kind = "") {
+  const host = $(".content") || document.body;
   let box = $("#toast");
   if (!box) {
     box = el("div", { id: "toast" });
-    const c = $(".content");
-    c.insertBefore(box, c.firstChild.nextSibling || null);
+    if (host === document.body) box.classList.add("floating");
+    host.insertBefore(box, host === document.body ? host.firstChild : (host.firstChild?.nextSibling || null));
   }
   box.className = "notice " + kind;
   box.textContent = msg;
@@ -180,6 +181,22 @@ function layout(activeNav, order) {
   body.append(shell);
   renderAppBar(body);
   renderSidebar(side, activeNav, order);
+
+  /* First tab stop on every page: jump straight to the action bar at the
+     bottom (or the main content when a page has none). */
+  body.prepend(el("a", {
+    href: "#",
+    class: "skiplink",
+    onclick: ev => {
+      ev.preventDefault();
+      const bar = $(".bottombar");
+      const target = bar ? ($(".btn.primary", bar) || $("button, a", bar)) : content;
+      if (!bar) content.setAttribute("tabindex", "-1");
+      target.focus();
+      target.scrollIntoView({ block: "center" });
+    }
+  }, "Skip to actions"));
+
   return content;
 }
 
@@ -330,4 +347,112 @@ function checklistPanel(o, currentStepKey) {
         submitted ? "Submitted" : `${doneCount} of ${steps.length} complete (${pct}%)`)),
     el("div", { class: "body tight" },
       el("table", { class: "grid" }, el("tbody", {}, ...rows))));
+}
+
+/* ---------- clipboard ---------- */
+function fallbackCopy(text, done) {
+  const ta = el("textarea", { style: "position:fixed;opacity:0;pointer-events:none" });
+  ta.value = text;
+  document.body.append(ta);
+  ta.select();
+  try { document.execCommand("copy"); done(); }
+  catch { toast("Copy failed — select the text and copy it manually."); }
+  ta.remove();
+}
+
+function copyText(text, label) {
+  const done = () => toast(`Copied ${label}.`, "ok");
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(done, () => fallbackCopy(text, done));
+  } else {
+    fallbackCopy(text, done);
+  }
+}
+
+/* ---------- the document, as selectable content ---------- */
+function rxLine(r) {
+  return `${r.eye} ${r.item} qty ${r.qty} power ${r.power} BC ${r.bc} DIA ${r.dia} CYL ${r.cyl} AXIS ${r.axis}`;
+}
+
+function copyBtn(text, label) {
+  return el("button", { class: "btn sm", type: "button", onclick: () => copyText(text, label) }, "Copy");
+}
+
+function docRow(label, value, withCopy) {
+  return el("tr", {},
+    el("th", {}, label),
+    el("td", {}, el("span", { class: "pickable" }, value)),
+    withCopy ? el("td", { style: "width:1%" }, copyBtn(value, label)) : null);
+}
+
+/* Renders the prescription as ordinary selectable HTML rather than a
+   page image, so values can be highlighted or copied straight out. */
+function documentSections(o, withCopy) {
+  const d = o.document, c = o.customer, m = o.member;
+  const kv = (title, ...rows) => el("section", { class: "panel" },
+    el("header", {}, title),
+    el("div", { class: "body tight" }, el("table", { class: "kv" }, ...rows)));
+
+  const rxRows = d.rx.map(r => el("tr", {},
+    el("td", {}, el("span", { class: "pickable" }, r.eye)),
+    el("td", {}, el("span", { class: "pickable" }, r.item)),
+    el("td", { class: "num" }, el("span", { class: "pickable" }, r.qty)),
+    el("td", { class: "num" }, el("span", { class: "pickable" }, r.power)),
+    el("td", { class: "num" }, el("span", { class: "pickable" }, r.bc)),
+    el("td", { class: "num" }, el("span", { class: "pickable" }, r.dia)),
+    el("td", { class: "num" }, el("span", { class: "pickable" }, r.cyl)),
+    el("td", { class: "num" }, el("span", { class: "pickable" }, r.axis)),
+    withCopy ? el("td", {}, copyBtn(rxLine(r), `${r.eye} line`)) : null));
+
+  return [
+    kv("Patient",
+      docRow("Name", `${m.first} ${m.last}`, withCopy),
+      docRow("Date of Birth", m.dob, withCopy),
+      docRow("Address", `${c.street}, ${c.city}, ${c.state} ${c.zip}`, withCopy)),
+    kv("Dates",
+      docRow("Exam Date", d.examDate, withCopy),
+      docRow("Issue Date", d.issueDate, withCopy),
+      docRow("Expires", d.expiresDate, withCopy),
+      docRow("Signature Date", d.signatureDate, withCopy)),
+    kv("Prescriber",
+      docRow("Name", d.prescriberName, withCopy),
+      docRow("Clinic", d.prescriberClinic, withCopy),
+      docRow("Phone", d.prescriberPhone, withCopy),
+      docRow("NPI", d.prescriberNpi, withCopy)),
+    el("section", { class: "panel" },
+      el("header", {}, "Prescribed Lenses",
+        withCopy ? el("div", { class: "spacer" }) : null,
+        withCopy ? el("a", { href: "#", onclick: e => {
+          e.preventDefault();
+          copyText(d.rx.map(rxLine).join("\n"), "all prescribed lines");
+        } }, "Copy all lines") : null),
+      el("div", { class: "body tight" },
+        el("table", { class: "grid" },
+          el("thead", {}, el("tr", {},
+            el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
+            el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
+            el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
+            el("th", { class: "num" }, "Axis"), withCopy ? el("th", {}, "") : null)),
+          el("tbody", {}, ...rxRows))))
+  ];
+}
+
+/* Opens the document in its own window, so it can sit on a second screen
+   alongside the order. Reuses the same window on repeat clicks. */
+function openDocWindow(o) {
+  const w = window.open(
+    `docview.html?order=${encodeURIComponent(o.id)}`,
+    "autopilot-document",
+    "width=580,height=840,resizable=yes,scrollbars=yes,menubar=no,toolbar=no,location=no,status=no");
+  if (!w) {
+    toast("Your browser blocked the pop-up. Allow pop-ups for this site, then try again.");
+    return null;
+  }
+  w.focus();
+  return w;
+}
+
+function docWindowBtn(o, label) {
+  return el("button", { class: "btn", type: "button", onclick: () => openDocWindow(o) },
+    label || "Open Document In Second Window");
 }

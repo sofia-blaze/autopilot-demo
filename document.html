@@ -30,45 +30,24 @@ if (!o) {
     tabs(o.id, "Documents"),
     checklistPanel(o, "document"));
 
-  /* ---------- the rendered "PDF" ---------- */
-  const items = doc.rx;
-  const page = el("div", { class: "page", id: "docPage" },
-    el("h1", {}, p.clinic),
-    el("div", { class: "doc-sub" }, `${p.name} · NPI ${p.npi} · ${p.phone}`),
-    el("hr", {}),
-    el("div", { class: "watermark" }, "CONTACT LENS PRESCRIPTION"),
-    el("dl", {},
-      el("dt", {}, "Patient"), el("dd", {}, `${m.first} ${m.last}`),
-      el("dt", {}, "Date of Birth"), el("dd", {}, m.dob),
-      el("dt", {}, "Address"), el("dd", {}, `${c.street}, ${c.city}, ${c.state} ${c.zip}`),
-      el("dt", {}, "Exam Date"), el("dd", {}, doc.examDate),
-      el("dt", {}, "Issued"), el("dd", {}, doc.issueDate),
-      el("dt", {}, "Expires"), el("dd", {}, doc.expiresDate),
-      el("dt", {}, "Signed"), el("dd", {}, doc.signatureDate)),
-    el("table", {},
-      el("thead", {}, el("tr", {},
-        el("th", {}, "Eye"), el("th", {}, "Material"), el("th", {}, "Qty"), el("th", {}, "Power"),
-        el("th", {}, "BC"), el("th", {}, "Dia"), el("th", {}, "Cyl"), el("th", {}, "Axis"))),
-      el("tbody", {},
-        ...items.map(it => el("tr", {},
-        el("td", {}, it.eye), el("td", {}, it.item), el("td", { class: "num" }, it.qty),
-        el("td", {}, it.power), el("td", {}, it.bc), el("td", {}, it.dia),
-        el("td", {}, it.cyl), el("td", {}, it.axis))))),
-    el("p", {}, el("b", {}, "Order reference: "), el("span", { class: "mono" }, o.id),
-      el("br", {}), el("b", {}, "Applied rule: "), o.appliedRule),
-    el("div", { class: "sigline" }, p.name),
-    el("p", { style: "margin-top:18px;color:#9aa4b6;font-size:9px" },
-      "Sample document generated for demonstration. Not a medical record. All names, addresses and prescriptions shown are fictional."));
-
-  const thumbs = el("div", { class: "thumbcol" },
-    el("div", { class: "thumb active" }, "PDF"),
-    el("div", { class: "muted", style: "font-size:11px;text-align:center" }, "Page 1 of 1"));
-
-  content.append(el("section", { class: "panel" },
-    el("header", {}, `Received ${o.received}`, el("div", { class: "spacer" }),
-       el("a", { href: "#", onclick: e => { e.preventDefault(); window.print(); } }, "Print / Save as PDF")),
+  /* ---------- the document, as selectable content ---------- */
+  content.append(el("section", { class: "panel noprint" },
+    el("header", {}, `Received ${o.received}`,
+      el("div", { class: "spacer" }),
+      el("a", { href: "#", onclick: e => { e.preventDefault(); window.print(); } }, "Print")),
     el("div", { class: "body" },
-      el("div", { class: "docwrap" }, thumbs, page))));
+      el("div", { class: "notice" },
+        "This is the prescription as received. Every value is selectable — highlight it, ",
+        "or use the Copy buttons. To keep it beside the order, ",
+        el("b", {}, "open it in its own window"), " and drag that to your second screen."),
+      el("div", { class: "btnrow", style: "margin-top:0" },
+        docWindowBtn(o),
+        el("a", { class: "btn", href: `docview.html${q}`, target: "_blank", rel: "noopener" },
+          "Open In New Tab"),
+        el("span", { class: "muted" },
+          "If your browser blocks the pop-up, use the tab version and drag it across.")))));
+
+  documentSections(o, true).forEach(sec => content.append(sec));
 
   /* ---------- document metadata ---------- */
   content.append(el("section", { class: "panel noprint" },

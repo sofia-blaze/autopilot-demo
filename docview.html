@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot — Document</title>
+<link rel="stylesheet" href="assets/css/app.css">
+</head>
+<body class="docwin">
+<script src="assets/js/data.js"></script>
+<script src="assets/js/app.js"></script>
+<script>
+const orderId = param("order");
+const o = findOrder(orderId);
+
+if (!o) {
+  document.body.append(
+    el("div", { class: "docwin-head" }, el("b", {}, "Document not found")),
+    el("div", { class: "docwin-body" },
+      el("div", { class: "notice" }, "No order was specified for this window.")));
+} else {
+  document.title = `Document ${o.docId} — ${o.customer.name}`;
+
+  document.body.append(
+    el("div", { class: "docwin-head" },
+      el("b", {}, `Document ${o.docId}`),
+      el("span", {}, `${o.customer.name} · Order ${o.id} · received ${o.received}`)),
+    el("div", { class: "docwin-body" },
+      el("div", { class: "notice" },
+        "Drag this window to your second screen and leave it open while you work the order. ",
+        "Values are selectable — highlight them, or use the Copy buttons."),
+      ...documentSections(o, true),
+      el("div", { class: "panel" },
+        el("header", {}, "Window"),
+        el("div", { class: "body" },
+          el("div", { class: "btnrow" },
+            el("button", { class: "btn", type: "button", onclick: () => window.print() }, "Print"),
+            el("button", { class: "btn", type: "button", onclick: () => window.close() }, "Close Window"))))));
+}
+</script>
+</body>
+</html>

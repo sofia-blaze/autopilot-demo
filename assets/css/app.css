@@ -254,3 +254,96 @@ label.check input { width: auto; }
 .mono { font-family: var(--mono); }
 .right { text-align: right; }
 h2.page-title { font-size: 17px; margin: 0 0 12px; }
+
+/* ---------- keyboard focus ----------
+   Deliberately loud: the swap screen is meant to be driven by Tab. */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+[tabindex]:focus-visible {
+  outline: 3px solid #ff8f00;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+tr.clickable:focus-visible { outline: 3px solid #ff8f00; outline-offset: -3px; }
+
+/* ---------- sticky action bar ---------- */
+.bottombar {
+  position: sticky;
+  bottom: 0;
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: var(--navy);
+  border-top: 3px solid var(--accent);
+  border-radius: 4px 4px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  z-index: 30;
+}
+.bottombar .label {
+  color: #c9d6ef;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: .09em;
+  font-weight: 700;
+  margin-right: 4px;
+}
+.bottombar .spacer { flex: 1; }
+.bottombar .btn { border-color: #45598a; }
+.bottombar .hint { color: #9fb6e4; font-size: 11.5px; width: 100%; margin-top: 2px; }
+
+/* ---------- selectable document values ---------- */
+.pickable {
+  user-select: all;
+  cursor: text;
+  padding: 1px 3px;
+  border-radius: 3px;
+}
+.pickable:hover { background: #fdf3d6; }
+
+/* ---------- standalone document window ---------- */
+body.docwin { background: var(--bg); }
+.docwin-head {
+  background: var(--navy);
+  color: #fff;
+  padding: 10px 14px;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+.docwin-head b { display: block; font-size: 14px; }
+.docwin-head span { font-size: 11.5px; color: #a9bbdc; }
+.docwin-body { padding: 12px; }
+.docwin-body .panel > header { font-size: 12px; }
+
+#toast.floating {
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  z-index: 90;
+  box-shadow: 0 4px 16px rgba(22, 35, 61, .3);
+}
+
+/* ---------- skip link ---------- */
+.skiplink {
+  position: absolute;
+  left: -9999px;
+  top: 0;
+  z-index: 100;
+  background: #ff8f00;
+  color: #17223a;
+  font-weight: 700;
+  padding: 9px 16px;
+  text-decoration: none;
+  border-radius: 0 0 4px 0;
+}
+.skiplink:focus {
+  left: 0;
+  outline: 3px solid #17223a;
+  outline-offset: -3px;
+}

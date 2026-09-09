@@ -10,7 +10,8 @@ no network calls and no real data.
 | --- | --- |
 | `index.html` | Agent desktop: state control, queue statistics, and the work list. Click any row (or **Open**) to load an order. |
 | `order.html` | Order detail: summary, validation alerts, Rx line items, and the verification form (three dropdowns + three dates). |
-| `document.html` | Rendered prescription document with a page thumbnail, document metadata, and the **Search Options** panel. |
+| `document.html` | The prescription as selectable content, document metadata, and the **Search Options** panel. |
+| `docview.html` | The same document in a bare window, sized to sit on a second screen. Opened via **Open Document In Second Window**. |
 | `swap.html` | Swap the prescriber, fill out and add a new line item, and edit member details. |
 
 ## Flow
@@ -62,7 +63,8 @@ rather than asking you to guess:
 - The swap screen lists the prescribed lines under **As Written On The Document**, each
   with a **Use This** button that loads it into the item form. The form pre-loads the
   first line the order is still missing, and advances to the next one after each add.
-  Lines already on the order are marked *On order*.
+  Lines already on the order are marked *On order*. **Add All Items From Document** in
+  the bottom bar adds every missing line at once.
 - The prescriber panel names the prescriber written on the document, so you know who to
   search for.
 
@@ -70,6 +72,27 @@ rather than asking you to guess:
 enforced at `Review & Submit`, which lists any outstanding stages, then shows a Final
 Review summary drawn from all three screens before `Confirm & Submit` issues a
 confirmation number and locks the order read-only. `Reopen Order` unlocks it again.
+
+## Second screen
+
+The document is ordinary selectable HTML, not a page image. **Open Document In Second
+Window** pops it out into its own bare window to drag onto another monitor; every value
+can be highlighted, and each has a **Copy** button (plus **Copy all lines** for the Rx
+table). If the browser blocks the pop-up, **Open In New Tab** does the same thing in a
+tab. The window stays put while you work the order.
+
+## Keyboard
+
+The swap screen is built to be driven by Tab:
+
+1. Tab once — a **Skip to actions** link appears; press Enter.
+2. Focus lands on **Add All Items From Document**. Press Enter to add every prescribed
+   line.
+3. Tab once more for **Back to Order**, the last stop on the page.
+
+The action bar is sticky at the bottom and is always last in the DOM, so tabbing down
+through the whole page reaches the same two buttons in the same order. Focus rings are
+deliberately high-contrast.
 
 Edits are held in `sessionStorage`, so they survive navigation between pages but are
 cleared when the tab closes. Nothing is sent anywhere.
