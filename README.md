@@ -45,10 +45,26 @@ screens. An order cannot be submitted until all five stages are clear:
 | 4 | Assign a prescriber | Swap Tool |
 | 5 | Add at least one Rx line item | Swap Tool |
 
-Stages already satisfied by the order data start out complete, so most orders open at 3/5
-and only need the document review and the two dropdowns. **Order 0192885017 (Rowan
-Alcaraz)** deliberately starts at 0/5 with blank dates, no prescriber and no line items,
-so the whole flow can be walked end to end.
+The queue holds two orders. **0192884512 (June Nakamura)** is already populated and opens
+at 3/5 — it only needs the document review and the two dropdowns. **0192885017 (Rowan
+Alcaraz)** starts at 0/5 with blank dates, no prescriber and no line items, so the whole
+flow can be walked end to end.
+
+## The document is the source of truth
+
+Nothing has to be invented. Each order's scanned prescription carries the dates, the
+prescriber and the prescribed lines, and the demo pushes those values into the order
+rather than asking you to guess:
+
+- The document screen opens with a **Transcribe From This Document** panel listing what
+  goes where.
+- The order screen shows what the document reads and offers **Copy Dates From Document**.
+- The swap screen lists the prescribed lines under **As Written On The Document**, each
+  with a **Use This** button that loads it into the item form. The form pre-loads the
+  first line the order is still missing, and advances to the next one after each add.
+  Lines already on the order are marked *On order*.
+- The prescriber panel names the prescriber written on the document, so you know who to
+  search for.
 
 `Update Files` saves a draft and validates only what has been typed. Completeness is
 enforced at `Review & Submit`, which lists any outstanding stages, then shows a Final

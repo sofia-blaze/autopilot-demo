@@ -1,7 +1,7 @@
 /* ------------------------------------------------------------------
    Autopilot Demo - sample data
    Everything in this file is FICTIONAL. Names, addresses, emails,
-   phone numbers, order numbers, doctors and product names are all
+   phone numbers, order numbers, prescribers and product names are all
    invented for demonstration purposes only. Do not replace these
    with real customer or patient data - this repository is public.
    ------------------------------------------------------------------ */
@@ -39,150 +39,17 @@ const LENS_CATALOG = [
   "NORTHLIGHT AIR 24pk"
 ];
 
+/* Each order carries a `document`: what the scanned prescription
+   actually says. The document is fixed - it is the source of truth the
+   agent reads from and transcribes into the order. */
 const ORDERS = [
-  {
-    id: "0192883471",
-    docId: "100884219",
-    customerId: "38771204",
-    status: "Waiting For Review",
-    statusKind: "warn",
-    priority: "High",
-    faxType: "Customer",
-    received: "2026-09-09 08:14",
-    ageMin: 42,
-    releaseTime: "",
-    takenDate: "2026-09-08 14:22",
-    takenBy: "R.QUINTANA",
-    rmaOrder: "",
-    appliedRule: "1 Year Rule",
-    callerId: "5550142889",
-    customer: {
-      name: "Marisol Vega",
-      phone: "(555) 014-2889",
-      email: "marisol.vega@example.com",
-      street: "412 Larkspur Way",
-      city: "Boulder", state: "CO", zip: "80302-4471"
-    },
-    member: { first: "Marisol", last: "Vega", dob: "03/14/1988", personId: "204118873", verify: "83816447" },
-    prescriber: { name: "Dr. Alena Brightwater, OD", clinic: "Larkspur Vision Center", phone: "(555) 014-7702", npi: "1000000017" },
-    lastExam: "08/30/2025", expires: "08/30/2026", issueDate: "09/02/2025",
-    alerts: [
-      "Missing prescriber signature. Please update prescriber information.",
-      "ContactDoctorForParameters = true"
-    ],
-    items: [
-      { eye: "OD", item: "CLARIVUE HYDRA+ 12pk", qty: 2, power: "-4.75", bc: "8.40", dia: "14.0", cyl: "0.00", axis: "0", add: "", color: "", flagged: false },
-      { eye: "OS", item: "CLARIVUE HYDRA+ 12pk", qty: 2, power: "-5.00", bc: "8.40", dia: "14.0", cyl: "0.00", axis: "0", add: "", color: "", flagged: false }
-    ]
-  },
-  {
-    id: "0192884006",
-    docId: "100884377",
-    customerId: "41220955",
-    status: "Waiting For Prescriber",
-    statusKind: "err",
-    priority: "High",
-    faxType: "Prescriber Office",
-    received: "2026-09-09 08:31",
-    ageMin: 25,
-    releaseTime: "",
-    takenDate: "2026-09-08 16:47",
-    takenBy: "T.ADEYEMI",
-    rmaOrder: "",
-    appliedRule: "2 Year Rule",
-    callerId: "5550193310",
-    customer: {
-      name: "Desmond Okafor",
-      phone: "(555) 019-3310",
-      email: "d.okafor@example.com",
-      street: "88 Halyard Street, Apt 6C",
-      city: "Portland", state: "ME", zip: "04101-2280"
-    },
-    member: { first: "Desmond", last: "Okafor", dob: "11/02/1979", personId: "204119940", verify: "83816502" },
-    prescriber: { name: "Dr. Nils Hammersmith, OD", clinic: "Harborview Eyecare", phone: "(555) 019-4418", npi: "1000000024" },
-    lastExam: "10/11/2024", expires: "10/11/2026", issueDate: "10/14/2024",
-    alerts: [
-      "Parameter mismatch on OS. Axis outside prescribed tolerance.",
-      "Submit & Skip Order. Please update parameter information."
-    ],
-    items: [
-      { eye: "OD", item: "AQUALENS BREATHE 6pk", qty: 1, power: "-2.25", bc: "8.60", dia: "14.5", cyl: "-1.25", axis: "180", add: "", color: "", flagged: false },
-      { eye: "OS", item: "AQUALENS BREATHE 6pk", qty: 1, power: "-2.50", bc: "8.60", dia: "14.5", cyl: "-1.75", axis: "090", add: "", color: "", flagged: true }
-    ]
-  },
-  {
-    id: "0192884118",
-    docId: "100884401",
-    customerId: "39004871",
-    status: "Verified",
-    statusKind: "ok",
-    priority: "Normal",
-    faxType: "Customer",
-    received: "2026-09-09 08:52",
-    ageMin: 12,
-    releaseTime: "2026-09-09 09:05",
-    takenDate: "2026-09-09 07:58",
-    takenBy: "J.NAKAMURA",
-    rmaOrder: "",
-    appliedRule: "1 Year Rule",
-    callerId: "5550166204",
-    customer: {
-      name: "Priya Raman",
-      phone: "(555) 016-6204",
-      email: "priya.raman@example.com",
-      street: "1750 Cottonwood Loop",
-      city: "Tempe", state: "AZ", zip: "85281-9017"
-    },
-    member: { first: "Priya", last: "Raman", dob: "06/27/1994", personId: "204120114", verify: "83816588" },
-    prescriber: { name: "Dr. Corinne Vasquez, OD", clinic: "Desert Ridge Optometry", phone: "(555) 016-8890", npi: "1000000031" },
-    lastExam: "02/19/2026", expires: "02/19/2027", issueDate: "02/21/2026",
-    alerts: [],
-    items: [
-      { eye: "OU", item: "OPTISOFT DAILIES 90pk", qty: 1, power: "-1.50", bc: "8.50", dia: "14.1", cyl: "0.00", axis: "0", add: "", color: "", flagged: false }
-    ]
-  },
-  {
-    id: "0192884290",
-    docId: "100884455",
-    customerId: "40551763",
-    status: "Waiting For Review",
-    statusKind: "warn",
-    priority: "Normal",
-    faxType: "Unclassified",
-    received: "2026-09-09 09:03",
-    ageMin: 8,
-    releaseTime: "",
-    takenDate: "2026-09-09 08:40",
-    takenBy: "A.WHITFIELD",
-    rmaOrder: "RMA-88214",
-    appliedRule: "1 Year Rule",
-    callerId: "0",
-    customer: {
-      name: "Elias Thorne",
-      phone: "(555) 017-4460",
-      email: "elias.thorne@example.com",
-      street: "9 Kestrel Hollow Road",
-      city: "Asheville", state: "NC", zip: "28801-3312"
-    },
-    member: { first: "Elias", last: "Thorne", dob: "01/19/1966", personId: "204120287", verify: "83816633" },
-    prescriber: { name: "Dr. Priyanka Ostrowski, OD", clinic: "Blue Ridge Family Eyecare", phone: "(555) 017-9925", npi: "1000000048" },
-    lastExam: "05/06/2025", expires: "05/06/2026", issueDate: "05/08/2025",
-    alerts: [
-      "Prescription expired on 2026-05-06. Expiration override required.",
-      "Invalid caller ID, pre-search not performed."
-    ],
-    items: [
-      { eye: "OD", item: "AQUALENS MULTIFOCAL 6pk", qty: 2, power: "+1.75", bc: "8.40", dia: "14.2", cyl: "0.00", axis: "0", add: "+2.00", color: "", flagged: true },
-      { eye: "OS", item: "AQUALENS MULTIFOCAL 6pk", qty: 2, power: "+2.00", bc: "8.40", dia: "14.2", cyl: "0.00", axis: "0", add: "+2.00", color: "", flagged: true }
-    ]
-  },
   {
     id: "0192884512",
     docId: "100884509",
     customerId: "37882140",
     status: "In Progress",
     statusKind: "info",
-    priority: "Low",
+    priority: "Normal",
     faxType: "Insurance",
     received: "2026-09-09 09:11",
     ageMin: 3,
@@ -206,40 +73,23 @@ const ORDERS = [
     items: [
       { eye: "OD", item: "NORTHLIGHT AIR 24pk", qty: 1, power: "-3.25", bc: "8.70", dia: "14.2", cyl: "0.00", axis: "0", add: "", color: "", flagged: false },
       { eye: "OS", item: "NORTHLIGHT AIR 24pk", qty: 1, power: "-3.00", bc: "8.70", dia: "14.2", cyl: "0.00", axis: "0", add: "", color: "", flagged: false }
-    ]
+    ],
+    document: {
+      prescriberName: "Dr. Marcus Feldbrook, OD",
+      prescriberClinic: "Cascade Sight Partners",
+      prescriberPhone: "(555) 018-2204",
+      prescriberNpi: "1000000055",
+      signatureDate: "01/10/2026",
+      examDate: "01/08/2026",
+      issueDate: "01/10/2026",
+      expiresDate: "01/08/2028",
+      rx: [
+        { eye: "OD", item: "NORTHLIGHT AIR 24pk", qty: 1, power: "-3.25", bc: "8.70", dia: "14.2", cyl: "0.00", axis: "0", add: "", color: "" },
+        { eye: "OS", item: "NORTHLIGHT AIR 24pk", qty: 1, power: "-3.00", bc: "8.70", dia: "14.2", cyl: "0.00", axis: "0", add: "", color: "" }
+      ]
+    }
   },
   {
-    id: "0192884733",
-    docId: "100884588",
-    customerId: "42019338",
-    status: "On Hold",
-    statusKind: "grey",
-    priority: "Normal",
-    faxType: "Customer",
-    received: "2026-09-09 09:16",
-    ageMin: 1,
-    releaseTime: "",
-    takenDate: "2026-09-09 09:12",
-    takenBy: "R.QUINTANA",
-    rmaOrder: "",
-    appliedRule: "1 Year Rule",
-    callerId: "5550120076",
-    customer: {
-      name: "Tobias Lindqvist",
-      phone: "(555) 012-0076",
-      email: "t.lindqvist@example.com",
-      street: "334 Quarry Bend",
-      city: "Madison", state: "WI", zip: "53703-1188"
-    },
-    member: { first: "Tobias", last: "Lindqvist", dob: "07/21/1983", personId: "204120612", verify: "83816844" },
-    prescriber: { name: "Dr. Hala Zaman, OD", clinic: "Lakeside Optical Group", phone: "(555) 012-6631", npi: "1000000062" },
-    lastExam: "12/02/2025", expires: "12/02/2026", issueDate: "12/04/2025",
-    alerts: ["Customer requested callback before shipment."],
-    items: [
-      { eye: "OU", item: "CLARIVUE HYDRA+ TORIC 6pk", qty: 4, power: "-6.00", bc: "8.60", dia: "14.5", cyl: "-0.75", axis: "010", add: "", color: "", flagged: false }
-    ]
-  }
-  ,{
     id: "0192885017",
     docId: "100884612",
     customerId: "43880129",
@@ -266,11 +116,25 @@ const ORDERS = [
     prescriber: null,
     lastExam: "", expires: "", issueDate: "",
     alerts: [
-      "No prescription dates on file. Enter exam, issue and expiration dates.",
-      "No prescriber assigned to this order.",
-      "No Rx line items on this order."
+      "No prescription dates on file. Transcribe them from the document.",
+      "No prescriber assigned. The prescriber is named on the document.",
+      "No Rx line items on this order. The document lists two."
     ],
-    items: []
+    items: [],
+    document: {
+      prescriberName: "Dr. Corinne Vasquez, OD",
+      prescriberClinic: "Desert Ridge Optometry",
+      prescriberPhone: "(555) 016-8890",
+      prescriberNpi: "1000000031",
+      signatureDate: "03/18/2026",
+      examDate: "03/15/2026",
+      issueDate: "03/18/2026",
+      expiresDate: "03/15/2027",
+      rx: [
+        { eye: "OD", item: "CLARIVUE HYDRA+ 12pk", qty: 2, power: "-1.75", bc: "8.40", dia: "14.0", cyl: "0.00", axis: "0", add: "", color: "" },
+        { eye: "OS", item: "CLARIVUE HYDRA+ 12pk", qty: 2, power: "-2.00", bc: "8.40", dia: "14.0", cyl: "0.00", axis: "0", add: "", color: "" }
+      ]
+    }
   }
 ];
 

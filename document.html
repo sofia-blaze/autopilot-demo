@@ -20,8 +20,9 @@ if (!o) {
   const saved = Edits.get(o.id);
   const q = `?order=${encodeURIComponent(o.id)}`;
   const c = o.customer, m = o.member;
-  const p = effectivePrescriber(o) || { name: "Prescriber unassigned", clinic: "—", phone: "—", npi: "—" };
-  const dd = effectiveDates(o);
+  const doc = o.document;
+  const p = { name: doc.prescriberName, clinic: doc.prescriberClinic,
+              phone: doc.prescriberPhone, npi: doc.prescriberNpi };
   const dash = v => v || "—";
 
   content.append(
@@ -30,7 +31,7 @@ if (!o) {
     checklistPanel(o, "document"));
 
   /* ---------- the rendered "PDF" ---------- */
-  const items = effectiveItems(o);
+  const items = doc.rx;
   const page = el("div", { class: "page", id: "docPage" },
     el("h1", {}, p.clinic),
     el("div", { class: "doc-sub" }, `${p.name} · NPI ${p.npi} · ${p.phone}`),
@@ -40,18 +41,19 @@ if (!o) {
       el("dt", {}, "Patient"), el("dd", {}, `${m.first} ${m.last}`),
       el("dt", {}, "Date of Birth"), el("dd", {}, m.dob),
       el("dt", {}, "Address"), el("dd", {}, `${c.street}, ${c.city}, ${c.state} ${c.zip}`),
-      el("dt", {}, "Exam Date"), el("dd", {}, dash(dd.lastExam)),
-      el("dt", {}, "Issued"), el("dd", {}, dash(dd.issueDate)),
-      el("dt", {}, "Expires"), el("dd", {}, dash(dd.expires))),
+      el("dt", {}, "Exam Date"), el("dd", {}, doc.examDate),
+      el("dt", {}, "Issued"), el("dd", {}, doc.issueDate),
+      el("dt", {}, "Expires"), el("dd", {}, doc.expiresDate),
+      el("dt", {}, "Signed"), el("dd", {}, doc.signatureDate)),
     el("table", {},
       el("thead", {}, el("tr", {},
-        el("th", {}, "Eye"), el("th", {}, "Material"), el("th", {}, "Power"),
-        el("th", {}, "BC"), el("th", {}, "Dia"), el("th", {}, "Cyl"), el("th", {}, "Axis"), el("th", {}, "Add"))),
-      el("tbody", {}, items.length ? null : el("tr", {}, el("td", { colspan: "8" }, "No line items recorded.")),
+        el("th", {}, "Eye"), el("th", {}, "Material"), el("th", {}, "Qty"), el("th", {}, "Power"),
+        el("th", {}, "BC"), el("th", {}, "Dia"), el("th", {}, "Cyl"), el("th", {}, "Axis"))),
+      el("tbody", {},
         ...items.map(it => el("tr", {},
-        el("td", {}, it.eye), el("td", {}, it.item), el("td", {}, it.power),
-        el("td", {}, it.bc), el("td", {}, it.dia), el("td", {}, it.cyl),
-        el("td", {}, it.axis), el("td", {}, it.add || "—"))))),
+        el("td", {}, it.eye), el("td", {}, it.item), el("td", { class: "num" }, it.qty),
+        el("td", {}, it.power), el("td", {}, it.bc), el("td", {}, it.dia),
+        el("td", {}, it.cyl), el("td", {}, it.axis))))),
     el("p", {}, el("b", {}, "Order reference: "), el("span", { class: "mono" }, o.id),
       el("br", {}), el("b", {}, "Applied rule: "), o.appliedRule),
     el("div", { class: "sigline" }, p.name),
@@ -83,6 +85,19 @@ if (!o) {
             ? el("span", { class: "badge err" }, "invalid") : o.callerId),
           el("td", {}, saved.faxType || o.faxType),
           el("td", {}, el("a", { href: `order.html${q}` }, o.id))))))));
+
+  /* ---------- what to transcribe ---------- */
+  content.append(el("section", { class: "panel noprint" },
+    el("header", {}, "Transcribe From This Document"),
+    el("div", { class: "body tight" },
+      el("table", { class: "kv" },
+        el("tr", {}, el("th", {}, "Dates \u2192 Order screen"),
+          el("td", {}, `Exam ${doc.examDate} · Issued ${doc.issueDate} · Expires ${doc.expiresDate}`)),
+        el("tr", {}, el("th", {}, "Signature date \u2192 below"), el("td", {}, doc.signatureDate)),
+        el("tr", {}, el("th", {}, "Prescriber \u2192 Swap Tool"),
+          el("td", {}, `${doc.prescriberName} — ${doc.prescriberClinic}`)),
+        el("tr", {}, el("th", {}, "Line items \u2192 Swap Tool"),
+          el("td", {}, doc.rx.map(r => `${r.eye} ${r.item} ${r.power}`).join("  ·  ")))))));
 
   /* ---------- document review (workflow stage 3) ---------- */
   const rv = Review.get(o.id);

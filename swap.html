@@ -85,6 +85,10 @@ if (!o) {
   content.append(el("section", { class: "panel" },
     el("header", {}, "Swap Prescriber For This Rx"),
     el("div", { class: "body" },
+      el("div", { class: "notice" },
+        "The document names ", el("b", {}, o.document.prescriberName),
+        " of ", o.document.prescriberClinic, ". Search for that name below, then click Select.",
+        " ", el("a", { href: `document.html${q}` }, "View the document")),
       el("div", { style: "margin-bottom:10px" },
         ...kinds.map((k, i) => el("label", { class: "check" }, boxes[i], k))),
       el("div", { class: "formgrid" },
@@ -115,6 +119,45 @@ if (!o) {
     color: el("input", { type: "text", id: "iColor", placeholder: "Optional" })
   };
 
+  /* Copy one prescribed line from the document into the form. */
+  function fillFrom(rx) {
+    it.eye.value = rx.eye;
+    it.item.value = rx.item;
+    it.qty.value = rx.qty;
+    it.power.value = rx.power;
+    it.bc.value = rx.bc;
+    it.dia.value = rx.dia;
+    it.cyl.value = rx.cyl;
+    it.axis.value = rx.axis;
+    it.add.value = rx.add || "";
+    it.color.value = rx.color || "";
+    toast(`Loaded ${rx.eye} from the document. Review it, then click Add Item.`);
+  }
+
+  /* Prescribed lines not yet on the order, matched on eye + power. */
+  function outstandingRx() {
+    const have = effectiveItems(o);
+    return o.document.rx.filter(rx =>
+      !have.some(h => h.eye === rx.eye && h.power === rx.power && h.item === rx.item));
+  }
+
+  const rxSource = el("tbody");
+  function paintRxSource() {
+    rxSource.replaceChildren();
+    for (const rx of o.document.rx) {
+      const done = !outstandingRx().includes(rx);
+      rxSource.append(el("tr", {},
+        el("td", {}, rx.eye), el("td", {}, rx.item), el("td", { class: "num" }, rx.qty),
+        el("td", { class: "num" }, rx.power), el("td", { class: "num" }, rx.bc),
+        el("td", { class: "num" }, rx.dia), el("td", { class: "num" }, rx.cyl),
+        el("td", { class: "num" }, rx.axis),
+        el("td", {}, done
+          ? badge("On order", "ok")
+          : el("button", { class: "btn sm primary", onclick: () => fillFrom(rx) }, "Use This"))));
+    }
+  }
+  paintRxSource();
+
   const preview = el("tbody");
   function paintPreview() {
     const added = AddedItems.get(o.id);
@@ -135,6 +178,11 @@ if (!o) {
   }
   paintPreview();
 
+  /* Start on the first line the order is still missing, so the form is
+     never blank when the document already says what is needed. */
+  const firstOutstanding = outstandingRx()[0];
+  if (firstOutstanding) fillFrom(firstOutstanding);
+
   function addItem() {
     if (!it.item.value) { toast("Choose an item from the catalog."); return; }
     if (!it.power.value.trim()) { toast("Power is required."); return; }
@@ -152,13 +200,29 @@ if (!o) {
     });
     it.power.value = it.cyl.value = it.axis.value = it.add.value = it.color.value = "";
     paintPreview();
+    paintRxSource();
     refreshChecklist();
+    const next = outstandingRx()[0];
+    if (next) fillFrom(next);
     toast("Item added. Return to the order to finalize.", "ok");
   }
 
   content.append(el("section", { class: "panel" },
     el("header", {}, "Fill Out Item"),
     el("div", { class: "body" },
+      el("div", { class: "notice" },
+        "These values come from the prescription document — you should not invent them. ",
+        "Click ", el("b", {}, "Use This"), " on a line to load it into the form below, then ",
+        el("b", {}, "Add Item"), ". ",
+        el("a", { href: `document.html${q}` }, "View the document")),
+      el("div", { class: "subhead" }, "As Written On The Document"),
+      el("table", { class: "grid", style: "margin-bottom:14px" },
+        el("thead", {}, el("tr", {},
+          el("th", {}, "Eye"), el("th", {}, "Item"), el("th", { class: "num" }, "Qty"),
+          el("th", { class: "num" }, "Power"), el("th", { class: "num" }, "BC"),
+          el("th", { class: "num" }, "Dia"), el("th", { class: "num" }, "Cyl"),
+          el("th", { class: "num" }, "Axis"), el("th", {}, ""))),
+        rxSource),
       el("div", { class: "formgrid" },
         el("label", { for: "iEye" }, "Eye"), it.eye,
         el("label", { for: "iItem" }, "Item"), it.item,
