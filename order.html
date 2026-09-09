@@ -18,61 +18,91 @@ if (!o) {
   notFound(content, "Open an order from the queue to view its detail.");
 } else {
   const saved = Edits.get(o.id);
+  const review = Review.get(o.id);
+  const submitted = isSubmitted(o);
   const q = `?order=${encodeURIComponent(o.id)}`;
 
   content.append(
-    el("h2", { class: "page-title" }, `Order ${o.id}`, " ", badge(o.status, o.statusKind)),
+    el("h2", { class: "page-title" }, `Order ${o.id}`, " ",
+      submitted ? badge("Submitted", "ok") : badge(o.status, o.statusKind)),
     tabs(o.id, "Order"));
 
-  /* ---------- header actions ---------- */
-  const head = el("section", { class: "panel" },
+  /* ---------- receipt, once submitted ---------- */
+  if (submitted) {
+    content.append(el("section", { class: "panel" },
+      el("header", {}, "Submission Receipt"),
+      el("div", { class: "body" },
+        el("div", { class: "notice ok" },
+          "Order submitted. Confirmation ", el("b", {}, review.confirmation),
+          " at ", review.submittedAt, "."),
+        el("div", { class: "btnrow" },
+          el("a", { class: "btn primary", href: "index.html" }, "Back to Queue"),
+          el("button", { class: "btn", onclick: () => {
+            Review.clear(o.id); Edits.clear(o.id); location.reload();
+          } }, "Reopen Order")))));
+  }
+
+  /* ---------- progress tracker ---------- */
+  let checklist = checklistPanel(o, "codes");
+  content.append(checklist);
+  function refreshChecklist() {
+    const next = checklistPanel(o, "codes");
+    checklist.replaceWith(next);
+    checklist = next;
+  }
+
+  /* ---------- linked document ---------- */
+  content.append(el("section", { class: "panel" },
     el("header", {},
       `Linked Document: ${o.docId}`,
       el("div", { class: "spacer" }),
       el("a", { href: `document.html${q}` }, "View Document"),
       el("span", {}, " · "),
-      el("a", { href: "#", onclick: e => { e.preventDefault(); toast("Delete is disabled in the demo."); } }, "Delete Document")));
-  content.append(head);
+      el("a", { href: "#", onclick: e => { e.preventDefault(); toast("Delete is disabled in the demo."); } }, "Delete Document"))));
 
   /* ---------- validation alerts ---------- */
-  if (o.alerts.length) {
+  if (o.alerts.length && !submitted) {
     content.append(el("section", { class: "panel" },
       el("header", {}, "Attention Required"),
       el("ul", { class: "alerts" }, ...o.alerts.map(a => el("li", {}, a)))));
   }
 
+  function row(label, value) { return el("tr", {}, el("th", {}, label), el("td", {}, value)); }
+
   /* ---------- order summary ---------- */
   const c = o.customer;
-  const summary = el("table", { class: "kv" },
-    row("Order Number", el("span", { class: "mono" }, o.id)),
-    row("Customer ID", el("span", { class: "mono" }, o.customerId)),
-    row("Order Status", badge(o.status, o.statusKind)),
-    row("Release Time", o.releaseTime || el("span", { class: "muted" }, "—")),
-    row("Customer Phone", c.phone),
-    row("Customer Email", c.email),
-    row("Ship To", el("div", { class: "stacked" },
-      c.name, el("br", {}), c.street, el("br", {}), `${c.city}, ${c.state} ${c.zip}`)),
-    row("Taken Date", o.takenDate),
-    row("Taken By", o.takenBy),
-    row("RMA Order", o.rmaOrder || el("span", { class: "muted" }, "—")),
-    row("Applied Rule", o.appliedRule));
-
   content.append(el("section", { class: "panel" },
     el("header", {}, "Order"),
-    el("div", { class: "body tight" }, summary)));
-
-  function row(label, value) {
-    return el("tr", {}, el("th", {}, label), el("td", {}, value));
-  }
+    el("div", { class: "body tight" },
+      el("table", { class: "kv" },
+        row("Order Number", el("span", { class: "mono" }, o.id)),
+        row("Customer ID", el("span", { class: "mono" }, o.customerId)),
+        row("Order Status", submitted ? badge("Submitted", "ok") : badge(o.status, o.statusKind)),
+        row("Release Time", o.releaseTime || el("span", { class: "muted" }, "—")),
+        row("Customer Phone", c.phone),
+        row("Customer Email", c.email),
+        row("Ship To", el("div", { class: "stacked" },
+          c.name, el("br", {}), c.street, el("br", {}), `${c.city}, ${c.state} ${c.zip}`)),
+        row("Taken Date", o.takenDate),
+        row("Taken By", o.takenBy),
+        row("RMA Order", o.rmaOrder || el("span", { class: "muted" }, "—")),
+        row("Applied Rule", o.appliedRule)))));
 
   /* ---------- order items ---------- */
   const itemBody = el("tbody");
   function paintItems() {
     itemBody.replaceChildren();
+    const mFirst = saved.memberFirst ?? o.member.first;
+    const mLast = saved.memberLast ?? o.member.last;
     itemBody.append(el("tr", {}, el("td", { colspan: "10", class: "rx-member" },
-      `${o.member.first} ${o.member.last} (Person ID: ${o.member.personId})`,
-      el("small", {}, `Verification code: ${o.member.verify} · DOB ${o.member.dob}`))));
-    const all = o.items.concat(AddedItems.get(o.id));
+      `${mFirst} ${mLast} (Person ID: ${o.member.personId})`,
+      el("small", {}, `Verification code: ${o.member.verify} · DOB ${saved.memberDob ?? o.member.dob}`))));
+    const all = effectiveItems(o);
+    if (!all.length) {
+      itemBody.append(el("tr", {}, el("td", { colspan: "10", class: "muted", style: "padding:14px;text-align:center" },
+        "No line items on this order. Add one from the Swap Tool.")));
+      return;
+    }
     for (const it of all) {
       itemBody.append(el("tr", { class: "rx-row" + (it.flagged ? " flagged" : "") },
         el("td", {}, it.eye), el("td", {}, it.item), el("td", { class: "num" }, it.qty),
@@ -97,14 +127,15 @@ if (!o) {
           el("th", {}, "Color"))),
         itemBody))));
 
-  /* ---------- verification form: dates + the three dropdowns ---------- */
+  /* ---------- verification form ---------- */
+  const d0 = effectiveDates(o);
   const f = {
-    lastExam: el("input", { type: "date", id: "lastExam", value: saved.lastExam ?? o.lastExam }),
-    expires:  el("input", { type: "date", id: "expires",  value: saved.expires  ?? o.expires }),
-    issue:    el("input", { type: "date", id: "issueDate", value: saved.issueDate ?? o.issueDate }),
-    reason:   sel("reasonCode", REASON_CODES, saved.reasonCode, "Select ———"),
-    options:  sel("orderOptions", ORDER_OPTIONS, saved.orderOptions, "Select ———"),
-    faxType:  sel("faxType", FAX_TYPES, saved.faxType ?? o.faxType, null),
+    lastExam: el("input", { type: "text", id: "lastExam", value: d0.lastExam, placeholder: DATE_HINT, autocomplete: "off" }),
+    expires:  el("input", { type: "text", id: "expires",  value: d0.expires,  placeholder: DATE_HINT, autocomplete: "off" }),
+    issue:    el("input", { type: "text", id: "issueDate", value: d0.issueDate, placeholder: DATE_HINT, autocomplete: "off" }),
+    reason:   mkSelect("reasonCode", REASON_CODES, saved.reasonCode, "Select ———"),
+    options:  mkSelect("orderOptions", ORDER_OPTIONS, saved.orderOptions, "Select ———"),
+    faxType:  mkSelect("faxType", FAX_TYPES, saved.faxType ?? o.faxType, null),
     override: el("input", { type: "checkbox", id: "override", checked: saved.override || null }),
     keepDoc:  el("input", { type: "checkbox", id: "keepDoc", checked: saved.keepDoc || null }),
     transfer: el("input", { type: "checkbox", id: "transfer", checked: saved.transfer || null }),
@@ -113,11 +144,10 @@ if (!o) {
   };
   f.notes.value = saved.notes || "";
 
-  function sel(id, list, current, placeholder) {
-    const s = el("select", { id },
+  function mkSelect(id, list, current, placeholder) {
+    return el("select", { id },
       placeholder ? el("option", { value: "" }, placeholder) : null,
       ...list.map(v => el("option", { value: v, selected: v === current ? "selected" : null }, v)));
-    return s;
   }
 
   const form = el("div", { class: "formgrid" },
@@ -138,57 +168,133 @@ if (!o) {
 
   function collect() {
     return {
-      lastExam: f.lastExam.value, expires: f.expires.value, issueDate: f.issue.value,
+      lastExam: f.lastExam.value.trim(), expires: f.expires.value.trim(), issueDate: f.issue.value.trim(),
       reasonCode: f.reason.value, orderOptions: f.options.value, faxType: f.faxType.value,
       override: f.override.checked, keepDoc: f.keepDoc.checked, transfer: f.transfer.checked,
       notes: f.notes.value
     };
   }
 
-  function save() {
+  /* Saves a draft. Only checks what has actually been typed - the
+     completeness rules are enforced at submit time instead. */
+  function save(quiet) {
     const data = collect();
-    const missing = [];
-    if (!data.reasonCode) missing.push("Reason Code");
-    if (!data.orderOptions) missing.push("Order Options");
-    if (!data.lastExam) missing.push("Last Exam Date");
-    if (missing.length) {
-      toast("Select a value for: " + missing.join(", "));
-      return false;
+    const fields = [["Last Exam Date", data.lastExam], ["Issue Date", data.issueDate], ["Expires", data.expires]];
+    for (const [label, raw] of fields) {
+      if (raw && !parseDate(raw)) {
+        toast(`${label} is not a valid date. Use ${DATE_HINT}.`);
+        return false;
+      }
     }
-    if (data.expires && data.lastExam && data.expires < data.lastExam) {
-      toast("Expiration date cannot be earlier than the last exam date.");
-      return false;
+    const exam = parseDate(data.lastExam), exp = parseDate(data.expires), iss = parseDate(data.issueDate);
+    if (exam && exp && exp < exam) { toast("Expiration date cannot be earlier than the last exam date."); return false; }
+    if (exam && iss && iss < exam) { toast("Issue date cannot be earlier than the last exam date."); return false; }
+    if (exp && exp < today() && !data.override) {
+      toast("Prescription is expired — tick Expiration Override to continue."); return false;
     }
-    const expired = data.expires && data.expires < new Date().toISOString().slice(0, 10);
-    if (expired && !data.override) {
-      toast("Prescription is expired — tick Expiration Override to continue.");
-      return false;
-    }
+    /* Normalise whatever the agent typed to MM/DD/YYYY. */
+    if (exam) data.lastExam = fmtDate(exam);
+    if (exp) data.expires = fmtDate(exp);
+    if (iss) data.issueDate = fmtDate(iss);
+    f.lastExam.value = data.lastExam; f.expires.value = data.expires; f.issue.value = data.issueDate;
+
     Edits.merge(o.id, data);
-    toast("Changes saved for this session.", "ok");
+    refreshChecklist();
+    if (!quiet) toast("Draft saved for this session.", "ok");
     return true;
   }
 
   content.append(el("section", { class: "panel" },
     el("header", {}, "Verification"),
     el("div", { class: "body" }, form,
+      el("p", { class: "muted", style: "margin:10px 0 0" },
+        "Dates are free text. ", DATE_HINT, " is preferred; ", el("b", {}, "9-30-26"),
+        " and ", el("b", {}, "2026-09-30"), " are also accepted and will be reformatted on save."),
       el("div", { class: "btnrow" },
-        el("button", { class: "btn primary", onclick: save }, "Update Files"),
+        el("button", { class: "btn primary", onclick: () => save() }, "Update Files"),
         el("button", { class: "btn", onclick: () => { if (save()) location.href = `document.html${q}`; } }, "Save & View Document"),
         el("a", { class: "btn", href: `swap.html${q}` }, "Open Swap Tool"),
         el("div", { class: "spacer" }),
-        el("button", { class: "btn warn", onclick: () => { Edits.clear(o.id); location.reload(); } }, "Discard Changes"),
+        el("button", { class: "btn warn", onclick: () => { Edits.clear(o.id); Review.clear(o.id); location.reload(); } }, "Discard Changes"),
         el("a", { class: "btn", href: "index.html" }, "Back to Queue")))));
 
-  /* ---------- current prescriber ---------- */
-  const p = o.prescriber;
+  /* ---------- prescriber ---------- */
+  const p = effectivePrescriber(o);
   content.append(el("section", { class: "panel" },
     el("header", {}, "Prescriber On File", el("div", { class: "spacer" }),
-       el("a", { href: `swap.html${q}` }, "Swap Prescriber")),
+       el("a", { href: `swap.html${q}` }, p ? "Swap Prescriber" : "Assign Prescriber")),
     el("div", { class: "body tight" },
-      el("table", { class: "kv" },
-        row("Name", p.name), row("Clinic", p.clinic),
-        row("Phone", p.phone), row("NPI", el("span", { class: "mono" }, p.npi))))));
+      p ? el("table", { class: "kv" },
+            row("Name", p.name), row("Clinic", p.clinic),
+            row("Phone", p.phone), row("NPI", el("span", { class: "mono" }, p.npi)))
+        : el("div", { class: "body" },
+            el("div", { class: "notice" }, "No prescriber assigned. Assign one from the Swap Tool.")))));
+
+  /* ---------- finalize ---------- */
+  const finalHost = el("div");
+
+  function openFinalReview() {
+    save(true);
+    const steps = reviewSteps(o);
+    const missing = steps.filter(s => !s.done);
+    if (missing.length) {
+      toast("Still outstanding: " + missing.map(s => `${s.label} (${s.where})`).join("; "));
+      refreshChecklist();
+      return;
+    }
+    const dd = effectiveDates(o);
+    const pr = effectivePrescriber(o);
+    const e = Edits.get(o.id);
+    const r = Review.get(o.id);
+
+    finalHost.replaceChildren(el("section", { class: "panel" },
+      el("header", {}, "Final Review — confirm before submitting"),
+      el("div", { class: "body tight" },
+        el("table", { class: "kv" },
+          row("Order", el("span", { class: "mono" }, o.id)),
+          row("Member", `${e.memberFirst ?? o.member.first} ${e.memberLast ?? o.member.last}`),
+          row("Last Exam / Issue / Expires", `${dd.lastExam} · ${dd.issueDate} · ${dd.expires}`),
+          row("Reason Code", e.reasonCode),
+          row("Order Options", e.orderOptions),
+          row("Document Type", e.faxType || o.faxType),
+          row("Document Review", `${r.docQuality} · signed ${r.docSignatureDate}`),
+          row("Prescriber", `${pr.name} — ${pr.clinic}`),
+          row("Line Items", String(effectiveItems(o).length)),
+          row("Expiration Override", e.override ? "Yes" : "No"),
+          row("Notes", e.notes || el("span", { class: "muted" }, "—")))),
+      el("div", { class: "body" },
+        el("div", { class: "btnrow" },
+          el("button", { class: "btn primary", onclick: doSubmit }, "Confirm & Submit"),
+          el("button", { class: "btn", onclick: () => finalHost.replaceChildren() }, "Cancel")))));
+    finalHost.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function doSubmit() {
+    const conf = "VF-" + String(Math.floor(100000 + Math.random() * 900000));
+    const now = new Date();
+    Review.merge(o.id, {
+      submitted: true,
+      confirmation: conf,
+      submittedAt: `${fmtDate(now)} ${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+    });
+    location.reload();
+  }
+
+  if (!submitted) {
+    content.append(el("section", { class: "panel" },
+      el("header", {}, "Finalize"),
+      el("div", { class: "body" },
+        el("p", { style: "margin:0 0 4px" },
+          "All five stages must be complete before the order can be submitted."),
+        el("div", { class: "btnrow" },
+          el("button", { class: "btn primary", onclick: openFinalReview }, "Review & Submit")))));
+  }
+  content.append(finalHost);
+
+  /* A submitted order is read-only. */
+  if (submitted) {
+    $$("input, select, textarea", content).forEach(x => { x.disabled = true; });
+  }
 }
 </script>
 </body>

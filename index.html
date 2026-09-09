@@ -53,7 +53,8 @@ const table = el("table", { class: "grid" },
   el("thead", {}, el("tr", {},
     el("th", {}, "Order Number"), el("th", {}, "Customer"), el("th", {}, "Customer ID"),
     el("th", {}, "Status"), el("th", {}, "Priority"), el("th", {}, "Document Type"),
-    el("th", {}, "Received"), el("th", { class: "num" }, "Age"), el("th", {}, ""))),
+    el("th", {}, "Received"), el("th", { class: "num" }, "Age"),
+    el("th", { class: "num" }, "Progress"), el("th", {}, ""))),
   tbody);
 
 const listPanel = el("section", { class: "panel" },
@@ -76,7 +77,7 @@ function applyFilter() {
 
   tbody.replaceChildren();
   if (!rows.length) {
-    tbody.append(el("tr", {}, el("td", { colspan: "9", class: "muted", style: "padding:18px;text-align:center" },
+    tbody.append(el("tr", {}, el("td", { colspan: "10", class: "muted", style: "padding:18px;text-align:center" },
       "There is no work to process.")));
   }
   for (const o of rows) {
@@ -84,15 +85,19 @@ function applyFilter() {
       el("td", { class: "mono" }, o.id),
       el("td", {}, o.customer.name),
       el("td", { class: "mono" }, o.customerId),
-      el("td", {}, badge(o.status, o.statusKind)),
+      el("td", {}, isSubmitted(o) ? badge("Submitted", "ok") : badge(o.status, o.statusKind)),
       el("td", {}, o.priority === "High" ? badge("High", "err") : o.priority),
       el("td", {}, o.faxType),
       el("td", { class: "mono" }, o.received),
       el("td", { class: "num" }, o.ageMin + "m"),
+      el("td", { class: "num" }, (() => {
+        const st = reviewSteps(o);
+        return `${st.filter(x => x.done).length}/${st.length}`;
+      })()),
       el("td", {}, el("button", {
         class: "btn sm primary",
         onclick: (e) => { e.stopPropagation(); open(o.id); }
-      }, "Open"))));
+      }, isSubmitted(o) ? "View" : "Open"))));
   }
   $("#count").textContent = `${rows.length} of ${ORDERS.length} shown`;
 }

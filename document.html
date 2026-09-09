@@ -19,14 +19,18 @@ if (!o) {
 } else {
   const saved = Edits.get(o.id);
   const q = `?order=${encodeURIComponent(o.id)}`;
-  const c = o.customer, p = o.prescriber, m = o.member;
+  const c = o.customer, m = o.member;
+  const p = effectivePrescriber(o) || { name: "Prescriber unassigned", clinic: "—", phone: "—", npi: "—" };
+  const dd = effectiveDates(o);
+  const dash = v => v || "—";
 
   content.append(
     el("h2", { class: "page-title" }, `Document ${o.docId}`),
-    tabs(o.id, "Documents"));
+    tabs(o.id, "Documents"),
+    checklistPanel(o, "document"));
 
   /* ---------- the rendered "PDF" ---------- */
-  const items = o.items.concat(AddedItems.get(o.id));
+  const items = effectiveItems(o);
   const page = el("div", { class: "page", id: "docPage" },
     el("h1", {}, p.clinic),
     el("div", { class: "doc-sub" }, `${p.name} · NPI ${p.npi} · ${p.phone}`),
@@ -36,14 +40,15 @@ if (!o) {
       el("dt", {}, "Patient"), el("dd", {}, `${m.first} ${m.last}`),
       el("dt", {}, "Date of Birth"), el("dd", {}, m.dob),
       el("dt", {}, "Address"), el("dd", {}, `${c.street}, ${c.city}, ${c.state} ${c.zip}`),
-      el("dt", {}, "Exam Date"), el("dd", {}, saved.lastExam || o.lastExam),
-      el("dt", {}, "Issued"), el("dd", {}, saved.issueDate || o.issueDate),
-      el("dt", {}, "Expires"), el("dd", {}, saved.expires || o.expires)),
+      el("dt", {}, "Exam Date"), el("dd", {}, dash(dd.lastExam)),
+      el("dt", {}, "Issued"), el("dd", {}, dash(dd.issueDate)),
+      el("dt", {}, "Expires"), el("dd", {}, dash(dd.expires))),
     el("table", {},
       el("thead", {}, el("tr", {},
         el("th", {}, "Eye"), el("th", {}, "Material"), el("th", {}, "Power"),
         el("th", {}, "BC"), el("th", {}, "Dia"), el("th", {}, "Cyl"), el("th", {}, "Axis"), el("th", {}, "Add"))),
-      el("tbody", {}, ...items.map(it => el("tr", {},
+      el("tbody", {}, items.length ? null : el("tr", {}, el("td", { colspan: "8" }, "No line items recorded.")),
+        ...items.map(it => el("tr", {},
         el("td", {}, it.eye), el("td", {}, it.item), el("td", {}, it.power),
         el("td", {}, it.bc), el("td", {}, it.dia), el("td", {}, it.cyl),
         el("td", {}, it.axis), el("td", {}, it.add || "—"))))),
@@ -78,6 +83,68 @@ if (!o) {
             ? el("span", { class: "badge err" }, "invalid") : o.callerId),
           el("td", {}, saved.faxType || o.faxType),
           el("td", {}, el("a", { href: `order.html${q}` }, o.id))))))));
+
+  /* ---------- document review (workflow stage 3) ---------- */
+  const rv = Review.get(o.id);
+  const dr = {
+    sigDate: el("input", { type: "text", id: "sigDate", value: rv.docSignatureDate || "",
+                           placeholder: DATE_HINT, autocomplete: "off" }),
+    quality: el("select", { id: "docQuality" },
+      el("option", { value: "" }, "Select ———"),
+      ...["Legible", "Partially legible", "Illegible"].map(v =>
+        el("option", { value: v, selected: v === rv.docQuality ? "selected" : null }, v))),
+    sigPresent: el("input", { type: "checkbox", id: "sigPresent", checked: rv.docSigPresent || null }),
+    nameMatch:  el("input", { type: "checkbox", id: "nameMatch", checked: rv.docNameMatch || null })
+  };
+
+  const drStatus = el("div");
+  function paintDrStatus() {
+    drStatus.replaceChildren(Review.get(o.id).docReviewed
+      ? el("div", { class: "notice ok" }, "Document reviewed. Stage 3 of 5 complete.")
+      : el("div", { class: "notice" }, "This document has not been reviewed yet."));
+  }
+  paintDrStatus();
+
+  function markReviewed() {
+    const dt = parseDate(dr.sigDate.value);
+    if (!dr.sigDate.value.trim()) { toast("Enter the signature date from the document."); return; }
+    if (!dt) { toast(`Signature date is not a valid date. Use ${DATE_HINT}.`); return; }
+    if (dt > today()) { toast("Signature date cannot be in the future."); return; }
+    if (!dr.quality.value) { toast("Select the document quality."); return; }
+    if (dr.quality.value === "Illegible") {
+      toast("An illegible document cannot be accepted. Request a new copy from the prescriber.");
+      return;
+    }
+    if (!dr.sigPresent.checked || !dr.nameMatch.checked) {
+      toast("Confirm both the signature and the patient name before marking the document reviewed.");
+      return;
+    }
+    dr.sigDate.value = fmtDate(dt);
+    Review.merge(o.id, {
+      docReviewed: true, docSignatureDate: fmtDate(dt), docQuality: dr.quality.value,
+      docSigPresent: true, docNameMatch: true
+    });
+    paintDrStatus();
+    toast("Document marked as reviewed.", "ok");
+  }
+
+  content.append(el("section", { class: "panel noprint" },
+    el("header", {}, "Document Review"),
+    el("div", { class: "body" },
+      drStatus,
+      el("div", { class: "formgrid" },
+        el("label", { for: "sigDate" }, "Signature Date"), dr.sigDate,
+        el("label", { for: "docQuality" }, "Document Quality"), dr.quality,
+        el("label", {}, "Confirmations"),
+        el("div", { class: "full" },
+          el("label", { class: "check" }, dr.sigPresent, "Prescriber signature present"),
+          el("label", { class: "check" }, dr.nameMatch, "Patient name matches the order"))),
+      el("div", { class: "btnrow" },
+        el("button", { class: "btn primary", onclick: markReviewed }, "Mark Document Reviewed"),
+        el("a", { class: "btn", href: `swap.html${q}` }, "Next: Swap Tool"),
+        el("button", { class: "btn", onclick: () => {
+          Review.merge(o.id, { docReviewed: false }); paintDrStatus(); toast("Document review cleared.");
+        } }, "Clear Review")))));
 
   /* ---------- search options ---------- */
   const byField = el("select", { id: "searchBy" }, ...SEARCH_FIELDS.map(s => el("option", {}, s)));

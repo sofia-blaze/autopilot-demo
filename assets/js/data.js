@@ -63,9 +63,9 @@ const ORDERS = [
       street: "412 Larkspur Way",
       city: "Boulder", state: "CO", zip: "80302-4471"
     },
-    member: { first: "Marisol", last: "Vega", dob: "1988-03-14", personId: "204118873", verify: "83816447" },
+    member: { first: "Marisol", last: "Vega", dob: "03/14/1988", personId: "204118873", verify: "83816447" },
     prescriber: { name: "Dr. Alena Brightwater, OD", clinic: "Larkspur Vision Center", phone: "(555) 014-7702", npi: "1000000017" },
-    lastExam: "2025-08-30", expires: "2026-08-30", issueDate: "2025-09-02",
+    lastExam: "08/30/2025", expires: "08/30/2026", issueDate: "09/02/2025",
     alerts: [
       "Missing prescriber signature. Please update prescriber information.",
       "ContactDoctorForParameters = true"
@@ -98,9 +98,9 @@ const ORDERS = [
       street: "88 Halyard Street, Apt 6C",
       city: "Portland", state: "ME", zip: "04101-2280"
     },
-    member: { first: "Desmond", last: "Okafor", dob: "1979-11-02", personId: "204119940", verify: "83816502" },
+    member: { first: "Desmond", last: "Okafor", dob: "11/02/1979", personId: "204119940", verify: "83816502" },
     prescriber: { name: "Dr. Nils Hammersmith, OD", clinic: "Harborview Eyecare", phone: "(555) 019-4418", npi: "1000000024" },
-    lastExam: "2024-10-11", expires: "2026-10-11", issueDate: "2024-10-14",
+    lastExam: "10/11/2024", expires: "10/11/2026", issueDate: "10/14/2024",
     alerts: [
       "Parameter mismatch on OS. Axis outside prescribed tolerance.",
       "Submit & Skip Order. Please update parameter information."
@@ -133,9 +133,9 @@ const ORDERS = [
       street: "1750 Cottonwood Loop",
       city: "Tempe", state: "AZ", zip: "85281-9017"
     },
-    member: { first: "Priya", last: "Raman", dob: "1994-06-27", personId: "204120114", verify: "83816588" },
+    member: { first: "Priya", last: "Raman", dob: "06/27/1994", personId: "204120114", verify: "83816588" },
     prescriber: { name: "Dr. Corinne Vasquez, OD", clinic: "Desert Ridge Optometry", phone: "(555) 016-8890", npi: "1000000031" },
-    lastExam: "2026-02-19", expires: "2027-02-19", issueDate: "2026-02-21",
+    lastExam: "02/19/2026", expires: "02/19/2027", issueDate: "02/21/2026",
     alerts: [],
     items: [
       { eye: "OU", item: "OPTISOFT DAILIES 90pk", qty: 1, power: "-1.50", bc: "8.50", dia: "14.1", cyl: "0.00", axis: "0", add: "", color: "", flagged: false }
@@ -164,9 +164,9 @@ const ORDERS = [
       street: "9 Kestrel Hollow Road",
       city: "Asheville", state: "NC", zip: "28801-3312"
     },
-    member: { first: "Elias", last: "Thorne", dob: "1966-01-19", personId: "204120287", verify: "83816633" },
+    member: { first: "Elias", last: "Thorne", dob: "01/19/1966", personId: "204120287", verify: "83816633" },
     prescriber: { name: "Dr. Priyanka Ostrowski, OD", clinic: "Blue Ridge Family Eyecare", phone: "(555) 017-9925", npi: "1000000048" },
-    lastExam: "2025-05-06", expires: "2026-05-06", issueDate: "2025-05-08",
+    lastExam: "05/06/2025", expires: "05/06/2026", issueDate: "05/08/2025",
     alerts: [
       "Prescription expired on 2026-05-06. Expiration override required.",
       "Invalid caller ID, pre-search not performed."
@@ -199,9 +199,9 @@ const ORDERS = [
       street: "6023 Alder Bluff Terrace",
       city: "Olympia", state: "WA", zip: "98501-6640"
     },
-    member: { first: "June", last: "Nakamura", dob: "2001-09-30", personId: "204120455", verify: "83816710" },
+    member: { first: "June", last: "Nakamura", dob: "09/30/2001", personId: "204120455", verify: "83816710" },
     prescriber: { name: "Dr. Marcus Feldbrook, OD", clinic: "Cascade Sight Partners", phone: "(555) 018-2204", npi: "1000000055" },
-    lastExam: "2026-01-08", expires: "2028-01-08", issueDate: "2026-01-10",
+    lastExam: "01/08/2026", expires: "01/08/2028", issueDate: "01/10/2026",
     alerts: [],
     items: [
       { eye: "OD", item: "NORTHLIGHT AIR 24pk", qty: 1, power: "-3.25", bc: "8.70", dia: "14.2", cyl: "0.00", axis: "0", add: "", color: "", flagged: false },
@@ -231,13 +231,46 @@ const ORDERS = [
       street: "334 Quarry Bend",
       city: "Madison", state: "WI", zip: "53703-1188"
     },
-    member: { first: "Tobias", last: "Lindqvist", dob: "1983-07-21", personId: "204120612", verify: "83816844" },
+    member: { first: "Tobias", last: "Lindqvist", dob: "07/21/1983", personId: "204120612", verify: "83816844" },
     prescriber: { name: "Dr. Hala Zaman, OD", clinic: "Lakeside Optical Group", phone: "(555) 012-6631", npi: "1000000062" },
-    lastExam: "2025-12-02", expires: "2026-12-02", issueDate: "2025-12-04",
+    lastExam: "12/02/2025", expires: "12/02/2026", issueDate: "12/04/2025",
     alerts: ["Customer requested callback before shipment."],
     items: [
       { eye: "OU", item: "CLARIVUE HYDRA+ TORIC 6pk", qty: 4, power: "-6.00", bc: "8.60", dia: "14.5", cyl: "-0.75", axis: "010", add: "", color: "", flagged: false }
     ]
+  }
+  ,{
+    id: "0192885017",
+    docId: "100884612",
+    customerId: "43880129",
+    status: "New - Unverified",
+    statusKind: "err",
+    priority: "High",
+    faxType: "Unclassified",
+    received: "2026-09-09 09:22",
+    ageMin: 2,
+    releaseTime: "",
+    takenDate: "2026-09-09 09:19",
+    takenBy: "AUTO-INTAKE",
+    rmaOrder: "",
+    appliedRule: "Pending",
+    callerId: "5550137745",
+    customer: {
+      name: "Rowan Alcaraz",
+      phone: "(555) 013-7745",
+      email: "rowan.alcaraz@example.com",
+      street: "27 Windmere Court",
+      city: "Frankfort", state: "KY", zip: "40601-2204"
+    },
+    member: { first: "Rowan", last: "Alcaraz", dob: "04/17/1990", personId: "204120880", verify: "83816991" },
+    prescriber: null,
+    lastExam: "", expires: "", issueDate: "",
+    alerts: [
+      "No prescription dates on file. Enter exam, issue and expiration dates.",
+      "No prescriber assigned to this order.",
+      "No Rx line items on this order."
+    ],
+    items: []
   }
 ];
 

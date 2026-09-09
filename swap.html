@@ -20,15 +20,27 @@ if (!o) {
   const q = `?order=${encodeURIComponent(o.id)}`;
   const saved = Edits.get(o.id);
 
+  let checklist = checklistPanel(o, "prescriber");
+  function refreshChecklist() {
+    const next = checklistPanel(o, "prescriber");
+    checklist.replaceWith(next);
+    checklist = next;
+  }
+
   content.append(
     el("h2", { class: "page-title" }, "Swap Tool"),
     tabs(o.id, "Rx / Swap"),
+    checklist,
     el("section", { class: "panel" },
       el("header", {}, `Order ${o.id} · ${o.customer.name}`),
       el("div", { class: "body" },
-        el("span", { class: "muted" }, "Current prescriber: "),
-        el("b", {}, saved.prescriberName || o.prescriber.name),
-        " — ", saved.prescriberClinic || o.prescriber.clinic)));
+        (() => {
+          const p = effectivePrescriber(o);
+          return p
+            ? el("div", {}, el("span", { class: "muted" }, "Current prescriber: "),
+                 el("b", {}, p.name), " — ", p.clinic)
+            : el("div", { class: "notice" }, "No prescriber is assigned to this order yet.");
+        })())));
 
   /* ---------- swap prescriber ---------- */
   const kinds = ["Domestic", "Military", "International"];
@@ -59,7 +71,10 @@ if (!o) {
         el("td", { class: "mono" }, d.phone), el("td", { class: "mono" }, d.npi),
         el("td", {}, badge(d.kind, d.kind === "Domestic" ? "info" : "grey")),
         el("td", {}, el("button", { class: "btn sm primary", onclick: () => {
-          Edits.merge(o.id, { prescriberName: d.name, prescriberClinic: d.clinic });
+          Edits.merge(o.id, {
+            prescriberName: d.name, prescriberClinic: d.clinic,
+            prescriberPhone: d.phone, prescriberNpi: d.npi
+          });
           toast(`Prescriber swapped to ${d.name}.`, "ok");
           setTimeout(() => location.reload(), 700);
         } }, "Select")))))));
@@ -78,7 +93,9 @@ if (!o) {
       el("div", { class: "btnrow" },
         el("button", { class: "btn primary", onclick: findPrescribers }, "Search"),
         el("button", { class: "btn", onclick: () => {
-          Edits.merge(o.id, { prescriberName: "", prescriberClinic: "" });
+          Edits.merge(o.id, {
+            prescriberName: "", prescriberClinic: "", prescriberPhone: "", prescriberNpi: ""
+          });
           toast("Reverted to the prescriber on file.", "ok");
           setTimeout(() => location.reload(), 700);
         } }, "Revert To Original")),
@@ -135,7 +152,8 @@ if (!o) {
     });
     it.power.value = it.cyl.value = it.axis.value = it.add.value = it.color.value = "";
     paintPreview();
-    toast("Item added to the order.", "ok");
+    refreshChecklist();
+    toast("Item added. Return to the order to finalize.", "ok");
   }
 
   content.append(el("section", { class: "panel" },
@@ -170,7 +188,8 @@ if (!o) {
   const mf = {
     first: el("input", { type: "text", id: "mFirst", value: saved.memberFirst ?? o.member.first }),
     last:  el("input", { type: "text", id: "mLast",  value: saved.memberLast  ?? o.member.last }),
-    dob:   el("input", { type: "date", id: "mDob",   value: saved.memberDob   ?? o.member.dob })
+    dob:   el("input", { type: "text", id: "mDob", value: saved.memberDob ?? o.member.dob,
+                         placeholder: DATE_HINT, autocomplete: "off" })
   };
 
   content.append(el("section", { class: "panel" },
@@ -185,11 +204,15 @@ if (!o) {
       el("div", { class: "btnrow" },
         el("button", { class: "btn primary", onclick: () => {
           if (!mf.first.value.trim() || !mf.last.value.trim()) { toast("First and last name are required."); return; }
+          if (mf.dob.value.trim() && !parseDate(mf.dob.value)) {
+            toast(`Date of birth is not a valid date. Use ${DATE_HINT}.`); return;
+          }
           Edits.merge(o.id, {
             memberFirst: mf.first.value.trim(),
             memberLast: mf.last.value.trim(),
-            memberDob: mf.dob.value
+            memberDob: mf.dob.value.trim() ? fmtDate(parseDate(mf.dob.value)) : ""
           });
+          mf.dob.value = Edits.get(o.id).memberDob;
           toast("Member updated. Verification would restart.", "ok");
         } }, "Save Member")))));
 }
