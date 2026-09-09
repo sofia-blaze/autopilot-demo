@@ -207,21 +207,6 @@ if (!o) {
   content.append(el("section", { class: "panel" },
     el("header", {}, "Verification"),
     el("div", { class: "body" }, form,
-      el("div", { class: "notice", style: "margin-top:12px" },
-        "The document reads: exam ", el("b", {}, o.document.examDate),
-        ", issued ", el("b", {}, o.document.issueDate),
-        ", expires ", el("b", {}, o.document.expiresDate), ". ",
-        el("a", { href: `document.html${q}` }, "View the document"),
-        el("br", {}),
-        el("button", { class: "btn sm", style: "margin-top:8px", onclick: () => {
-          f.lastExam.value = o.document.examDate;
-          f.issue.value = o.document.issueDate;
-          f.expires.value = o.document.expiresDate;
-          toast("Dates copied from the document. Review them, then click Update Files.");
-        } }, "Copy Dates From Document")),
-      el("p", { class: "muted", style: "margin:10px 0 0" },
-        "Dates are free text. ", DATE_HINT, " is preferred; ", el("b", {}, "9-30-26"),
-        " and ", el("b", {}, "2026-09-30"), " are also accepted and will be reformatted on save."),
       el("div", { class: "btnrow" },
         el("button", { class: "btn primary", onclick: () => save() }, "Update Files"),
         el("button", { class: "btn", onclick: () => { if (save()) location.href = `document.html${q}`; } }, "Save & View Document"),
@@ -296,9 +281,7 @@ if (!o) {
     content.append(el("section", { class: "panel" },
       el("header", {}, "Finalize"),
       el("div", { class: "body" },
-        el("p", { style: "margin:0 0 4px" },
-          "All five stages must be complete before the order can be submitted."),
-        el("div", { class: "btnrow" },
+        el("div", { class: "btnrow", style: "margin-top:0" },
           el("button", { class: "btn primary", onclick: openFinalReview }, "Review & Submit")))));
   }
   content.append(finalHost);

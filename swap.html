@@ -85,10 +85,6 @@ if (!o) {
   content.append(el("section", { class: "panel" },
     el("header", {}, "Swap Prescriber For This Rx"),
     el("div", { class: "body" },
-      el("div", { class: "notice" },
-        "The document names ", el("b", {}, o.document.prescriberName),
-        " of ", o.document.prescriberClinic, ". Search for that name below, then click Select.",
-        " ", el("a", { href: `document.html${q}` }, "View the document")),
       el("div", { style: "margin-bottom:10px" },
         ...kinds.map((k, i) => el("label", { class: "check" }, boxes[i], k))),
       el("div", { class: "formgrid" },
@@ -120,7 +116,7 @@ if (!o) {
   };
 
   /* Copy one prescribed line from the document into the form. */
-  function fillFrom(rx) {
+  function fillFrom(rx, quiet) {
     it.eye.value = rx.eye;
     it.item.value = rx.item;
     it.qty.value = rx.qty;
@@ -131,7 +127,7 @@ if (!o) {
     it.axis.value = rx.axis;
     it.add.value = rx.add || "";
     it.color.value = rx.color || "";
-    toast(`Loaded ${rx.eye} from the document. Review it, then click Add Item.`);
+    if (!quiet) toast(`Loaded the ${rx.eye} line.`);
   }
 
   /* Prescribed lines not yet on the order, matched on eye + power. */
@@ -183,7 +179,7 @@ if (!o) {
   /* Start on the first line the order is still missing, so the form is
      never blank when the document already says what is needed. */
   const firstOutstanding = outstandingRx()[0];
-  if (firstOutstanding) fillFrom(firstOutstanding);
+  if (firstOutstanding) fillFrom(firstOutstanding, true);
 
   /* Takes back a single line added in this session. */
   function removeItemAt(idx) {
@@ -203,7 +199,7 @@ if (!o) {
     paintRxSource();
     refreshChecklist();
     const next = outstandingRx()[0];
-    if (next) fillFrom(next);
+    if (next) fillFrom(next, true);
     toast(`Removed ${n} added line${n === 1 ? "" : "s"}.`);
   }
 
@@ -246,8 +242,8 @@ if (!o) {
     paintRxSource();
     refreshChecklist();
     const next = outstandingRx()[0];
-    if (next) fillFrom(next);
-    toast("Item added. Return to the order to finalize.", "ok");
+    if (next) fillFrom(next, true);
+    toast("Item added.", "ok");
   }
 
   /* ---------- edit member ---------- */
@@ -285,11 +281,6 @@ if (!o) {
   content.append(el("section", { class: "panel" },
     el("header", {}, "Fill Out Item"),
     el("div", { class: "body" },
-      el("div", { class: "notice" },
-        "These values come from the prescription document — you should not invent them. ",
-        "Click ", el("b", {}, "Use This"), " on a line to load it into the form below, then ",
-        el("b", {}, "Add Item"), ". ",
-        el("a", { href: `document.html${q}` }, "View the document")),
       el("div", { class: "subhead" }, "As Written On The Document"),
       el("table", { class: "grid", style: "margin-bottom:14px" },
         el("thead", {}, el("tr", {},
@@ -331,10 +322,7 @@ if (!o) {
     el("button", { class: "btn primary", type: "button", onclick: addAllFromDocument },
       "Add All Items From Document"),
     el("div", { class: "spacer" }),
-    el("a", { class: "btn primary", href: `order.html${q}` }, "Back to Order"),
-    el("span", { class: "hint" },
-      "Keyboard: Tab steps down the page. The last two stops are ",
-      "Add All Items From Document, then Back to Order.")));
+    el("a", { class: "btn primary", href: `order.html${q}` }, "Back to Order")));
 }
 </script>
 </body>

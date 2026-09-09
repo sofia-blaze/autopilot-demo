@@ -17,31 +17,52 @@ const content = layout("Document Viewer", orderId);
 if (!o) {
   notFound(content, "Open an order from the queue to view its documents.");
 } else {
-  const saved = Edits.get(o.id);
   const q = `?order=${encodeURIComponent(o.id)}`;
-  const c = o.customer, m = o.member;
-  const doc = o.document;
-  const p = { name: doc.prescriberName, clinic: doc.prescriberClinic,
-              phone: doc.prescriberPhone, npi: doc.prescriberNpi };
-  const dash = v => v || "—";
+  const c = o.customer, m = o.member, doc = o.document;
 
   content.append(
     el("h2", { class: "page-title" }, `Document ${o.docId}`),
     tabs(o.id, "Documents"),
     checklistPanel(o, "document"));
 
-  /* ---------- the document, as selectable content ---------- */
-  content.append(el("section", { class: "panel noprint" },
-    el("header", {}, `Received ${o.received}`,
-      el("div", { class: "spacer" }),
-      el("a", { href: "#", onclick: e => { e.preventDefault(); window.print(); } }, "Print")),
-    el("div", { class: "body" },
-      el("div", { class: "notice" },
-        "This is the prescription as received. Every value is selectable. ",
-        el("b", {}, "Save"), " opens it in its own window, which you can drag to your second screen."),
-      el("div", { class: "btnrow", style: "margin-top:0" }, docWindowBtn(o, "Save")))));
+  /* ---------- the scanned document ---------- */
+  const page = el("div", { class: "page", id: "docPage" },
+    el("h1", {}, doc.prescriberClinic),
+    el("div", { class: "doc-sub" }, `${doc.prescriberName} · NPI ${doc.prescriberNpi} · ${doc.prescriberPhone}`),
+    el("hr", {}),
+    el("div", { class: "watermark" }, "CONTACT LENS PRESCRIPTION"),
+    el("dl", {},
+      el("dt", {}, "Patient"), el("dd", {}, `${m.first} ${m.last}`),
+      el("dt", {}, "Date of Birth"), el("dd", {}, m.dob),
+      el("dt", {}, "Address"), el("dd", {}, `${c.street}, ${c.city}, ${c.state} ${c.zip}`),
+      el("dt", {}, "Exam Date"), el("dd", {}, doc.examDate),
+      el("dt", {}, "Issued"), el("dd", {}, doc.issueDate),
+      el("dt", {}, "Expires"), el("dd", {}, doc.expiresDate)),
+    el("table", {},
+      el("thead", {}, el("tr", {},
+        el("th", {}, "Eye"), el("th", {}, "Material"), el("th", {}, "Qty"), el("th", {}, "Power"),
+        el("th", {}, "BC"), el("th", {}, "Dia"), el("th", {}, "Cyl"), el("th", {}, "Axis"))),
+      el("tbody", {}, ...doc.rx.map(it => el("tr", {},
+        el("td", {}, it.eye), el("td", {}, it.item), el("td", {}, it.qty),
+        el("td", {}, it.power), el("td", {}, it.bc), el("td", {}, it.dia),
+        el("td", {}, it.cyl), el("td", {}, it.axis))))),
+    el("p", {}, el("b", {}, "Order reference: "), el("span", { class: "mono" }, o.id),
+      el("br", {}), el("b", {}, "Applied rule: "), o.appliedRule),
+    el("div", { class: "sigline" }, doc.prescriberName),
+    el("p", { style: "margin-top:14px;color:#9aa4b6;font-size:9px" },
+      "Sample document generated for demonstration. Not a medical record. ",
+      "All names, addresses and prescriptions shown are fictional."));
 
-  documentSections(o, true).forEach(sec => content.append(sec));
+  const thumbs = el("div", { class: "thumbcol" },
+    el("div", { class: "thumb active" }, "PDF"),
+    el("div", { class: "muted", style: "font-size:11px;text-align:center" }, "Page 1 of 1"),
+    el("div", { class: "btnrow", style: "margin-top:10px" }, docWindowBtn(o, "Open")));
+
+  content.append(el("section", { class: "panel" },
+    el("header", {}, `Received ${o.received}`, el("div", { class: "spacer" }),
+       el("a", { href: "#", onclick: e => { e.preventDefault(); window.print(); } }, "Print")),
+    el("div", { class: "body" },
+      el("div", { class: "docwrap" }, thumbs, page))));
 
   /* ---------- document metadata ---------- */
   content.append(el("section", { class: "panel noprint" },
@@ -56,23 +77,10 @@ if (!o) {
           el("td", { class: "mono" }, o.received),
           el("td", { class: "mono" }, o.callerId === "0"
             ? el("span", { class: "badge err" }, "invalid") : o.callerId),
-          el("td", {}, saved.faxType || o.faxType),
+          el("td", {}, Edits.get(o.id).faxType || o.faxType),
           el("td", {}, el("a", { href: `order.html${q}` }, o.id))))))));
 
-  /* ---------- what to transcribe ---------- */
-  content.append(el("section", { class: "panel noprint" },
-    el("header", {}, "Transcribe From This Document"),
-    el("div", { class: "body tight" },
-      el("table", { class: "kv" },
-        el("tr", {}, el("th", {}, "Dates \u2192 Order screen"),
-          el("td", {}, `Exam ${doc.examDate} · Issued ${doc.issueDate} · Expires ${doc.expiresDate}`)),
-        el("tr", {}, el("th", {}, "Signature date \u2192 below"), el("td", {}, doc.signatureDate)),
-        el("tr", {}, el("th", {}, "Prescriber \u2192 Swap Tool"),
-          el("td", {}, `${doc.prescriberName} — ${doc.prescriberClinic}`)),
-        el("tr", {}, el("th", {}, "Line items \u2192 Swap Tool"),
-          el("td", {}, doc.rx.map(r => `${r.eye} ${r.item} ${r.power}`).join("  ·  ")))))));
-
-  /* ---------- document review (workflow stage 3) ---------- */
+  /* ---------- document review ---------- */
   const rv = Review.get(o.id);
   const dr = {
     sigDate: el("input", { type: "text", id: "sigDate", value: rv.docSignatureDate || "",
@@ -88,8 +96,8 @@ if (!o) {
   const drStatus = el("div");
   function paintDrStatus() {
     drStatus.replaceChildren(Review.get(o.id).docReviewed
-      ? el("div", { class: "notice ok" }, "Document reviewed. Stage 3 of 5 complete.")
-      : el("div", { class: "notice" }, "This document has not been reviewed yet."));
+      ? el("div", { class: "notice ok" }, "Document reviewed.")
+      : el("div", { class: "notice" }, "Not reviewed."));
   }
   paintDrStatus();
 
@@ -128,9 +136,9 @@ if (!o) {
           el("label", { class: "check" }, dr.sigPresent, "Prescriber signature present"),
           el("label", { class: "check" }, dr.nameMatch, "Patient name matches the order"))),
       el("div", { class: "btnrow" },
-        el("button", { class: "btn primary", onclick: markReviewed }, "Mark Document Reviewed"),
+        el("button", { class: "btn primary", type: "button", onclick: markReviewed }, "Mark Document Reviewed"),
         el("a", { class: "btn", href: `swap.html${q}` }, "Next: Swap Tool"),
-        el("button", { class: "btn", onclick: () => {
+        el("button", { class: "btn", type: "button", onclick: () => {
           Review.merge(o.id, { docReviewed: false }); paintDrStatus(); toast("Document review cleared.");
         } }, "Clear Review")))));
 
@@ -169,11 +177,9 @@ if (!o) {
         el("label", { for: "searchBy" }, "Search by"), byField,
         el("label", { for: "searchFor" }, "Search for"), forTerm),
       el("div", { class: "btnrow" },
-        el("button", { class: "btn primary", onclick: runSearch }, "Search"),
+        el("button", { class: "btn primary", type: "button", onclick: runSearch }, "Search"),
         el("a", { class: "btn", href: `order.html${q}` }, "Back to Order"),
         el("a", { class: "btn", href: "index.html" }, "Back to Queue")),
-      el("p", { class: "muted", style: "margin:10px 0 0" },
-        "When searching by member name, use the format ", el("b", {}, "last, first"), "."),
       results)));
 }
 </script>

@@ -10,8 +10,8 @@ no network calls and no real data.
 | --- | --- |
 | `index.html` | Agent desktop: state control, queue statistics, and the work list. Click any row (or **Open**) to load an order. |
 | `order.html` | Order detail: summary, validation alerts, Rx line items, and the verification form (three dropdowns + three dates). |
-| `document.html` | The prescription as selectable content, document metadata, and the **Search Options** panel. |
-| `docview.html` | The same document in a bare window, sized to sit on a second screen. Opened by **Save** on the document screen. |
+| `document.html` | The scanned prescription, document metadata, and the **Search Options** panel. |
+| `docview.html` | The same document in a bare window, sized to sit on a second screen. Opened by **Open** on the document screen. |
 | `swap.html` | Swap the prescriber, fill out and add a new line item, and edit member details. |
 
 ## Flow
@@ -57,9 +57,6 @@ Nothing has to be invented. Each order's scanned prescription carries the dates,
 prescriber and the prescribed lines, and the demo pushes those values into the order
 rather than asking you to guess:
 
-- The document screen opens with a **Transcribe From This Document** panel listing what
-  goes where.
-- The order screen shows what the document reads and offers **Copy Dates From Document**.
 - The swap screen lists the prescribed lines under **As Written On The Document**, each
   with a **Use This** button that loads it into the item form. The form pre-loads the
   first line the order is still missing, and advances to the next one after each add.
@@ -78,10 +75,10 @@ confirmation number and locks the order read-only. `Reopen Order` unlocks it aga
 
 ## Second screen
 
-The document is ordinary selectable HTML, not a page image. **Save**, on the document
-screen, opens it in its own bare window to drag onto another monitor, where it stays put
-while you work the order. That window has no copy controls — values are selectable, so
-click one to select it and copy with the keyboard.
+The document screen shows the scanned prescription as a page. **Open**, beside the page
+thumbnail, puts the same document in its own bare window to drag onto a second monitor,
+where it stays put while you work the order. In that window every value is selectable,
+so a click selects it and you copy with the keyboard.
 
 ## Keyboard
 
