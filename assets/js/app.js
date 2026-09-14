@@ -443,21 +443,10 @@ function documentSections(o, withCopy) {
 
 /* Opens the document in its own window, so it can sit on a second screen
    alongside the order. Reuses the same window on repeat clicks. */
-/* The document content, built once and reused by both window styles. */
-function buildDocView(o) {
-  const frag = document.createDocumentFragment();
-  frag.append(
-    el("div", { class: "docwin-head" },
-      el("b", {}, `Document ${o.docId}`),
-      el("span", {}, `${o.customer.name} · Order ${o.id} · received ${o.received}`)),
-    el("div", { class: "docwin-body" }, ...documentSections(o, false)));
-  return frag;
-}
-
-/* Plain pop-up window. Cannot be kept above other windows - browsers
-   dropped that ability - so this is the fallback. */
-function openDocPopup(o) {
+function openDocWindow(o) {
   const width = 620, height = 860;
+  /* Centre it on the screen the opener sits on, clamped so it cannot land
+     off-screen on a smaller display. */
   const availW = screen.availWidth || 1440;
   const availH = screen.availHeight || 900;
   const left = Math.max(0, Math.round((availW - width) / 2 + (screen.availLeft || 0)));
@@ -480,36 +469,6 @@ function openDocPopup(o) {
   }
   w.focus();
   return w;
-}
-
-/* Fills a picture-in-picture window with the document. Its content has to
-   be written in rather than loaded from a URL, and nodes must be adopted
-   because they belong to this document. */
-function fillDocWindow(pip, o) {
-  const d = pip.document;
-  d.title = `Document ${o.docId}`;
-  const link = d.createElement("link");
-  link.rel = "stylesheet";
-  link.href = new URL("assets/css/app.css", location.href).href;
-  d.head.append(link);
-  d.body.className = "docwin";
-  d.body.append(d.importNode(buildDocView(o), true));
-  return pip;
-}
-
-/* Opens the document beside the order. Picture-in-picture is the only way
-   to get a window that stays above the browser, so prefer it and fall back
-   to an ordinary pop-up where it is unavailable. */
-function openDocWindow(o) {
-  const pipApi = window.documentPictureInPicture;
-  if (pipApi && typeof pipApi.requestWindow === "function") {
-    /* Called first thing so it still counts as a user gesture. */
-    pipApi.requestWindow({ width: 620, height: 860 })
-      .then(pip => fillDocWindow(pip, o))
-      .catch(() => { openDocPopup(o); });
-    return null;
-  }
-  return openDocPopup(o);
 }
 
 function docWindowBtn(o, label) {
