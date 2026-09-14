@@ -76,9 +76,15 @@ confirmation number and locks the order read-only. `Reopen Order` unlocks it aga
 ## Second screen
 
 The document screen shows the scanned prescription as a page. **Open**, beside the page
-thumbnail, puts the same document in its own bare window to drag onto a second monitor,
-where it stays put while you work the order. In that window every value is selectable,
-so a click selects it and you copy with the keyboard.
+thumbnail, puts the same document in a separate window.
+
+Where the browser supports document picture-in-picture (Chrome and Edge), that window
+**floats above everything else** and stays visible whatever you click. Elsewhere it falls
+back to an ordinary pop-up, which sits on a second monitor perfectly well but cannot be
+kept on top — browsers removed the ability for a page to raise its own window.
+
+In either window every value is selectable, so a click selects it and you copy with the
+keyboard.
 
 ## Keyboard
 
