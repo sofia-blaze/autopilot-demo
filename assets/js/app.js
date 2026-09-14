@@ -444,10 +444,25 @@ function documentSections(o, withCopy) {
 /* Opens the document in its own window, so it can sit on a second screen
    alongside the order. Reuses the same window on repeat clicks. */
 function openDocWindow(o) {
-  const w = window.open(
-    `docview.html?order=${encodeURIComponent(o.id)}`,
-    "autopilot-document",
-    "width=580,height=840,resizable=yes,scrollbars=yes,menubar=no,toolbar=no,location=no,status=no");
+  const width = 620, height = 860;
+  /* Centre it on the screen the opener sits on, clamped so it cannot land
+     off-screen on a smaller display. */
+  const availW = screen.availWidth || 1440;
+  const availH = screen.availHeight || 900;
+  const left = Math.max(0, Math.round((availW - width) / 2 + (screen.availLeft || 0)));
+  const top = Math.max(0, Math.round((availH - height) / 2 + (screen.availTop || 0)));
+
+  /* `popup=yes` is what actually makes this a separate window. Without it
+     browsers guess from the other features, and Chrome now guesses "tab". */
+  const features = [
+    "popup=yes",
+    `width=${width}`, `height=${height}`,
+    `left=${left}`, `top=${top}`,
+    "resizable=yes", "scrollbars=yes",
+    "menubar=no", "toolbar=no", "location=no", "status=no"
+  ].join(",");
+
+  const w = window.open(`docview.html?order=${encodeURIComponent(o.id)}`, "autopilot-document", features);
   if (!w) {
     toast("Your browser blocked the pop-up. Allow pop-ups for this site, then try again.");
     return null;
